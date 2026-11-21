@@ -1,4 +1,6 @@
 What's new · Що нового
+• First launch: the logo traces ∞ while Aether loads, then rises to greet you with the language choice · Перший запуск: лого обводить ∞ під час завантаження й піднімається до вибору мови
+• New launch animation: a light traces ∞ around the logo while Aether loads, then becomes the dock · Нова заставка: світло обводить ∞ навколо лого під час завантаження й стає доком
 • Sharp text and borders at any zoom level — no more blur when zooming out · Чіткий текст і рамки на будь-якому масштабі — більше ніякого мила при віддаленні
 • New notes start without a placeholder title · Нові нотатки без автоматичного напису «Нова нотатка»
 • Ctrl+D duplicates everything selected — notes, buttons, frames, drawings · Ctrl+D дублює все виділене: нотатки, кнопки, рамки, малюнки

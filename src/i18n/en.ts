@@ -327,4 +327,8 @@ export const EN: Record<string, string> = {
   'Як показати фото': 'How to show the photo',
   'Тягніть, щоб змінити розмір': 'Drag to resize',
   'Звичайний розмір': 'Normal size',
+  'Відкриваємо сховище': 'Opening your vault',
+  'Готуємо полотно': 'Preparing the canvas',
+  'Прогріваємо рендер': 'Warming up the renderer',
+  'Майже готово': 'Almost ready',
 }

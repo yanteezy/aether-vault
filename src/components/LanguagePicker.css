@@ -66,3 +66,66 @@
 @media (max-width: 520px) {
   .lang-pick__options { grid-template-columns: 1fr; }
 }
+
+/* ---------- first-launch intro (see LanguagePicker.tsx) ---------- */
+.lang-pick__intro {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.lang-pick__fly {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 230px;
+  height: 230px;
+  opacity: 0;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 10px 30px rgba(34, 211, 238, 0.18));
+}
+/* while the light traces the ∞ the card is laid out (so the intro can aim at it) but invisible */
+.lang-pick.is-intro .lang-pick__card,
+.lang-pick.is-reveal .lang-pick__card {
+  animation: none;
+}
+.lang-pick.is-intro .lang-pick__card {
+  opacity: 0;
+}
+.lang-pick.is-intro .lang-pick__logo,
+.lang-pick.is-reveal .lang-pick__logo {
+  visibility: hidden;
+}
+.lang-pick.is-reveal .lang-pick__card {
+  animation: lang-card-in 600ms ease-out both;
+}
+.lang-pick.is-reveal .lang-pick__card > :not(.lang-pick__logo) {
+  animation: lang-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.lang-pick.is-reveal .lang-pick__title { animation-delay: 80ms !important; }
+.lang-pick.is-reveal .lang-pick__subtitle { animation-delay: 160ms !important; }
+.lang-pick.is-reveal .lang-pick__options { animation-delay: 240ms !important; }
+.lang-pick.is-reveal .lang-pick__note { animation-delay: 340ms !important; }
+@keyframes lang-card-in {
+  from { background-color: transparent; border-color: transparent; box-shadow: none; }
+}
+@keyframes lang-rise {
+  from { opacity: 0; transform: translateY(10px); }
+}
+/* the dotted background fades in with the card (a dark veil over it during the intro) */
+.lang-pick::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: radial-gradient(circle at 50% 50%, #141724 0%, #090a10 100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 700ms ease-out;
+}
+.lang-pick.is-intro::before { opacity: 1; }
+.lang-pick__card { position: relative; z-index: 1; }
+.lang-pick__intro { z-index: 2; }
+.lang-pick__fly { z-index: 3; }

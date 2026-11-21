@@ -206,13 +206,14 @@ export default function App() {
   if (!langChosen)
     return (
       <LangContext.Provider value={settings.language}>
+        {/* the first launch has its own intro inside the picker, so the regular splash is skipped */}
         <LanguagePicker
           onPick={(language) => {
+            hideSplash()
             patchSettings({ language })
             setLangChosen(true)
           }}
         />
-        {splash && <SplashScreen onDone={hideSplash} />}
       </LangContext.Provider>
     )
 
