@@ -12,6 +12,22 @@ export const THEMES: { id: ThemeId; name: string; description: string }[] = [
   { id: 'mono', name: 'Монохром', description: 'Строгий чорно-білий, без скла' },
 ]
 
+/** Canvas background for the plain themes (Glass and Light): calm tones and quiet patterns. */
+export type CanvasBg = 'default' | 'graphite' | 'fog' | 'sage' | 'sand' | 'diagonal' | 'plus' | 'waves' | 'linen'
+export const CANVAS_BGS: { id: CanvasBg; name: string; pattern?: boolean }[] = [
+  { id: 'default', name: 'Стандарт' },
+  { id: 'graphite', name: 'Графіт' },
+  { id: 'fog', name: 'Туман' },
+  { id: 'sage', name: 'Шавлія' },
+  { id: 'sand', name: 'Пісок' },
+  { id: 'diagonal', name: 'Діагоналі', pattern: true },
+  { id: 'plus', name: 'Плюсики', pattern: true },
+  { id: 'waves', name: 'Хвилі', pattern: true },
+  { id: 'linen', name: 'Льон', pattern: true },
+]
+/** Only the dark (Glass) and light themes take a custom background; the others have their own look. */
+export const themeHasCanvasBg = (t: ThemeId) => t === 'glass' || t === 'light'
+
 export interface AppSettings {
   /** @deprecated kept only to migrate the first vault's name */
   vaultName: string
@@ -37,6 +53,8 @@ export interface AppSettings {
   zoomToCursor: boolean
   /** Font of the note cards ('auto' = the theme's own font). */
   noteFont: NoteFont
+  /** Canvas background (Glass and Light themes only). */
+  canvasBg: CanvasBg
 }
 
 export const ACCENT_PRESETS: { name: string; value: string }[] = [
@@ -68,6 +86,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   language: 'en',
   zoomToCursor: false,
   noteFont: 'auto',
+  canvasBg: 'default',
 }
 
 export const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)
@@ -161,6 +180,7 @@ export function applySettings(s: AppSettings) {
   root.setProperty('--speed-fast', `${fast}ms`)
   root.setProperty('--speed-slow', `${slow}ms`)
   document.body.dataset.theme = s.theme
+  document.body.dataset.canvasBg = themeHasCanvasBg(s.theme) && CANVAS_BGS.some((b) => b.id === s.canvasBg) ? s.canvasBg : 'default'
   document.body.dataset.noteFont = s.noteFont || 'auto'
   root.setProperty('--note-font-global', fontStack(s.noteFont) || 'inherit')
 }

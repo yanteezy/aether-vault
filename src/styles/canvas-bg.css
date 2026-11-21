@@ -1,0 +1,68 @@
+/*
+ * Canvas backgrounds for the Glass (dark) and Light themes — calm, low-contrast tones and quiet patterns.
+ * Settings → Design → "Canvas background". applySettings() sets body[data-canvas-bg] ('default' for other themes).
+ * Patterns are tileable SVGs: they sit under the grid, move with the board and scale with the zoom.
+ */
+
+/* ---------- per-theme palette ---------- */
+body[data-theme='glass'] {
+  --cbg-default: #0e0f14;
+  --cbg-graphite: #17191e;
+  --cbg-fog: #141822;
+  --cbg-sage: #151b19;
+  --cbg-sand: #1b1917;
+  --cbg-diagonal: #15171c;
+  --cbg-plus: #16191d;
+  --cbg-waves: #1a1817;
+  --cbg-linen: #17181c;
+  --cpat-diagonal: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M-6 6l12-12M0 24L24 0M18 30l12-12' stroke='%23fff' stroke-opacity='.075' stroke-width='1.2'/%3E%3C/svg%3E");
+  --cpat-plus: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M12 8.5v7M8.5 12h7' stroke='%23fff' stroke-opacity='.08' stroke-width='1.2' stroke-linecap='round'/%3E%3C/svg%3E");
+  --cpat-waves: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M0 12a12 12 0 0 1 24 0M-12 24a12 12 0 0 1 24 0M12 24a12 12 0 0 1 24 0' fill='none' stroke='%23fff' stroke-opacity='.05' stroke-width='1.2'/%3E%3C/svg%3E");
+  --cpat-linen: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Cpath d='M0 .5h6M.5 0v6' stroke='%23fff' stroke-opacity='.035' stroke-width='1'/%3E%3C/svg%3E");
+}
+body[data-theme='light'] {
+  --cbg-default: #f5f5f7;
+  --cbg-graphite: #eceef1;
+  --cbg-fog: #e7ebf0;
+  --cbg-sage: #e9eee8;
+  --cbg-sand: #f2ede4;
+  --cbg-diagonal: #f1f1f0;
+  --cbg-plus: #f0f1f3;
+  --cbg-waves: #f2ede4;
+  --cbg-linen: #eee9df;
+  --cpat-diagonal: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M-6 6l12-12M0 24L24 0M18 30l12-12' stroke='%23000' stroke-opacity='.06' stroke-width='1.2'/%3E%3C/svg%3E");
+  --cpat-plus: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M12 8.5v7M8.5 12h7' stroke='%23000' stroke-opacity='.1' stroke-width='1.2' stroke-linecap='round'/%3E%3C/svg%3E");
+  --cpat-waves: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M0 12a12 12 0 0 1 24 0M-12 24a12 12 0 0 1 24 0M12 24a12 12 0 0 1 24 0' fill='none' stroke='%23000' stroke-opacity='.07' stroke-width='1.2'/%3E%3C/svg%3E");
+  --cpat-linen: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Cpath d='M0 .5h6M.5 0v6' stroke='%23000' stroke-opacity='.045' stroke-width='1'/%3E%3C/svg%3E");
+}
+
+/* ---------- applied to the canvas ---------- */
+body[data-theme][data-canvas-bg='graphite'] { --bg-canvas: var(--cbg-graphite); }
+body[data-theme][data-canvas-bg='fog'] { --bg-canvas: var(--cbg-fog); }
+body[data-theme][data-canvas-bg='sage'] { --bg-canvas: var(--cbg-sage); }
+body[data-theme][data-canvas-bg='sand'] { --bg-canvas: var(--cbg-sand); }
+body[data-theme][data-canvas-bg='diagonal'] { --bg-canvas: var(--cbg-diagonal); --canvas-pattern: var(--cpat-diagonal); --canvas-pattern-k: 0.5; }
+body[data-theme][data-canvas-bg='plus'] { --bg-canvas: var(--cbg-plus); --canvas-pattern: var(--cpat-plus); --canvas-pattern-k: 1; }
+body[data-theme][data-canvas-bg='waves'] { --bg-canvas: var(--cbg-waves); --canvas-pattern: var(--cpat-waves); --canvas-pattern-k: 1; }
+body[data-theme][data-canvas-bg='linen'] { --bg-canvas: var(--cbg-linen); --canvas-pattern: var(--cpat-linen); --canvas-pattern-k: 0.25; }
+/* with a pattern the grid steps back so the two don't fight */
+body[data-theme][data-canvas-bg='diagonal'] .canvas-board,
+body[data-theme][data-canvas-bg='plus'] .canvas-board,
+body[data-theme][data-canvas-bg='waves'] .canvas-board,
+body[data-theme][data-canvas-bg='linen'] .canvas-board {
+  --dot-color: rgba(127, 127, 127, 0.16);
+}
+
+/* ---------- swatches in Settings ---------- */
+.canvas-bg-swatch {
+  background-color: var(--cbg-default);
+  background-size: 12px 12px;
+}
+.canvas-bg-swatch[data-bg='graphite'] { background-color: var(--cbg-graphite); }
+.canvas-bg-swatch[data-bg='fog'] { background-color: var(--cbg-fog); }
+.canvas-bg-swatch[data-bg='sage'] { background-color: var(--cbg-sage); }
+.canvas-bg-swatch[data-bg='sand'] { background-color: var(--cbg-sand); }
+.canvas-bg-swatch[data-bg='diagonal'] { background-color: var(--cbg-diagonal); background-image: var(--cpat-diagonal); background-size: 10px 10px; }
+.canvas-bg-swatch[data-bg='plus'] { background-color: var(--cbg-plus); background-image: var(--cpat-plus); background-size: 14px 14px; }
+.canvas-bg-swatch[data-bg='waves'] { background-color: var(--cbg-waves); background-image: var(--cpat-waves); background-size: 14px 14px; }
+.canvas-bg-swatch[data-bg='linen'] { background-color: var(--cbg-linen); background-image: var(--cpat-linen); background-size: 4px 4px; }

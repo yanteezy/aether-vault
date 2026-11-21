@@ -10,6 +10,8 @@ import {
   keyLabel,
   radialKeyFromEvent,
   THEMES,
+  CANVAS_BGS,
+  themeHasCanvasBg,
 } from '../settings/settings'
 import pkg from '../../package.json'
 import { FontSizeControl } from './FontSizePicker'
@@ -172,6 +174,28 @@ export function SettingsModal({ open, settings, vaultName, onRenameVault, onChan
                     </button>
                   ))}
                 </div>
+                {themeHasCanvasBg(vaultTheme ?? settings.theme) && (
+                  <div className="settings__row settings__row--stack">
+                    <div className="settings__label">
+                      {tr('Фон полотна')}
+                      <span className="settings__hint">{tr('Спокійні тони й тихі патерни — для тем «Скло» і «Світла»')}</span>
+                    </div>
+                    <div className="settings__bgs" role="radiogroup" aria-label={tr('Фон полотна')}>
+                      {CANVAS_BGS.map((b) => (
+                        <button
+                          key={b.id}
+                          role="radio"
+                          aria-checked={settings.canvasBg === b.id}
+                          className={`settings__bg${settings.canvasBg === b.id ? ' is-active' : ''}`}
+                          onClick={() => onChange({ canvasBg: b.id })}
+                        >
+                          <span className="settings__bg-tile canvas-bg-swatch" data-bg={b.id} />
+                          <span className="settings__bg-name">{tr(b.name)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="settings__group">
                 <Row label={tr('Акцентний колір')}>

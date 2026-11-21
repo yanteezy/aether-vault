@@ -2,10 +2,13 @@
   position: absolute;
   inset: 0;
   background-color: var(--bg-canvas);
-  background-image: radial-gradient(var(--dot-color) 1px, transparent 1px);
+  /* grid + optional background pattern (styles/canvas-bg.css) */
+  background-image: radial-gradient(var(--dot-color) 1px, transparent 1px), var(--canvas-pattern, none);
   /* pattern is anchored to world origin and scales with zoom */
   background-position: var(--bg-x, 0) var(--bg-y, 0);
-  background-size: var(--grid-px, 24px) var(--grid-px, 24px);
+  background-size:
+    var(--grid-px, 24px) var(--grid-px, 24px),
+    calc(var(--grid-px, 24px) * var(--canvas-pattern-k, 1)) calc(var(--grid-px, 24px) * var(--canvas-pattern-k, 1));
   cursor: grab;
   touch-action: none;
   overflow: hidden;
@@ -98,11 +101,17 @@
 .canvas-board.grid-lines {
   background-image:
     linear-gradient(var(--dot-color) 1px, transparent 1px),
-    linear-gradient(90deg, var(--dot-color) 1px, transparent 1px);
+    linear-gradient(90deg, var(--dot-color) 1px, transparent 1px),
+    var(--canvas-pattern, none);
+  background-size:
+    var(--grid-px, 24px) var(--grid-px, 24px),
+    var(--grid-px, 24px) var(--grid-px, 24px),
+    calc(var(--grid-px, 24px) * var(--canvas-pattern-k, 1)) calc(var(--grid-px, 24px) * var(--canvas-pattern-k, 1));
 }
 
 .canvas-board.grid-none {
-  background-image: none;
+  background-image: var(--canvas-pattern, none);
+  background-size: calc(var(--grid-px, 24px) * var(--canvas-pattern-k, 1)) calc(var(--grid-px, 24px) * var(--canvas-pattern-k, 1));
 }
 
 .canvas-board,

@@ -308,3 +308,39 @@ body[data-theme='detective'] .settings__keybind { background: rgba(0, 0, 0, 0.05
 
 /* a row whose control needs the full width (font tiles) */
 .settings__row--stack { flex-direction: column; align-items: stretch; gap: 10px; }
+
+/* ---------- canvas background (Glass / Light themes) ---------- */
+.settings__bgs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+.settings__bg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.settings__bg-tile {
+  width: 100%;
+  height: 40px;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px rgba(127, 127, 127, 0.28);
+  transition: transform var(--spring-fast), box-shadow var(--spring-fast);
+}
+.settings__bg:hover .settings__bg-tile { transform: translateY(-2px); }
+.settings__bg.is-active .settings__bg-tile {
+  box-shadow: inset 0 0 0 1px rgba(127, 127, 127, 0.28), 0 0 0 2px var(--accent);
+}
+.settings__bg-name {
+  font-size: 11.5px;
+  opacity: 0.7;
+}
+.settings__bg.is-active .settings__bg-name { opacity: 1; }
