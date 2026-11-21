@@ -14,6 +14,7 @@ import { usePersistentState } from './hooks/usePersistentState'
 import { DEFAULT_VAULT_ID, vaultKey } from './hooks/vaultKeys'
 import { GUIDE_BOUNDS, guideContent, translateGuide } from './data/guide'
 import type { ChipColor, Connection, Frame, InkColor, InkStroke, InkTool, NoteCardData, Side, TagChip, Vault } from './types/note'
+import { INK_RECENT_DEFAULT, pushRecentInk } from './types/note'
 import { TagChipLayer, TagPanel, snapTo, type ChipDrop } from './components/TagButtons'
 import { GRID } from './settings/settings'
 import { getLang, useT } from './i18n'
@@ -25,6 +26,7 @@ import { ChipMenu } from './components/ChipMenu'
 import { chipEffect, type ObjectFx } from './effects/tagEffects'
 import { importImage, isImageFile, type NoteImage } from './features/images'
 import { describeLink, parseUrl } from './features/links'
+import { parseShareLink } from './features/share'
 import { CHIP_COLORS } from './types/note'
 import { RadialIcon } from './components/RadialIcons'
 
@@ -50,7 +52,7 @@ let boardClip: BoardClip | null = null
 const H = 160
 
 /** View transform that fits a world rect between the top bar and the dock. */
-function fitTransform(b: { x: number; y: number; width: number; height: number }) {
+export function fitTransform(b: { x: number; y: number; width: number; height: number }) {
   const top = 64
   const bottom = 112
   const side = 40
@@ -65,6 +67,21 @@ const isTyping = (t: EventTarget | null) =>
 
 export interface WorkspaceApi {
   newNote: () => void
+  /** The board (or just the selection) for a share link / file; photos are left out of links. */
+  shareSnapshot: (o: { selection: boolean; skipPrivate: boolean }) => ShareSnapshot
+  /** How many objects are selected right now. */
+  selectionSize: () => number
+}
+export interface ShareSnapshot {
+  notes: NoteCardData[]
+  connections: Connection[]
+  frames: Frame[]
+  chips: TagChip[]
+  strokes: InkStroke[]
+  /** Notes left out because they are private. */
+  privateSkipped: number
+  /** Notes whose photo is not in the link. */
+  photos: number
 }
 
 interface WorkspaceProps {
@@ -84,6 +101,8 @@ interface WorkspaceProps {
   tabCount?: number
   /** Change the theme where it is set: this workspace's own theme, or the global one. */
   onSetTheme?: (theme: ThemeId) => void
+  /** An Aether board link was pasted on the canvas. */
+  onShareLink?: (text: string) => void
 }
 
 /** Everything that belongs to one vault. Re-mounted (key) when the vault changes. */
@@ -101,6 +120,7 @@ export function Workspace({
   onSwitchTab,
   tabCount = 1,
   onSetTheme,
+  onShareLink,
 }: WorkspaceProps) {
   const tr = useT()
   const isFirst = vault.id === DEFAULT_VAULT_ID
@@ -187,9 +207,10 @@ export function Workspace({
   // ---------- freehand ink & smart frames (per vault) ----------
   const [strokes, setStrokes] = usePersistentState<InkStroke[]>(vaultKey(vault.id, 'ink'), guide?.strokes ?? [])
   const [frames, setFrames] = usePersistentState<Frame[]>(vaultKey(vault.id, 'frames'), guide?.frames ?? [])
-  const [inkPrefs, setInkPrefs] = usePersistentState<{ tool: InkTool; color: InkColor }>('ink-tool', {
+  const [inkPrefs, setInkPrefs] = usePersistentState<{ tool: InkTool; color: InkColor; recent?: InkColor[] }>('ink-tool', {
     tool: 'pen',
     color: 'chalk',
+    recent: INK_RECENT_DEFAULT,
   })
   const [drawing, setDrawing] = useState(false)
   kindRef.current = { chips: new Set(chips.map((c) => c.id)), frames: new Set(frames.map((f) => f.id)), strokes: new Set(strokes.filter((st) => !st.note).map((st) => st.id)) }
@@ -246,8 +267,13 @@ export function Workspace({
       const cy = (b.minY + b.maxY) / 2
       const host = [...notesRef.current].reverse().find((n) => cx >= n.x && cx <= n.x + n.width && cy >= n.y && cy <= n.y + noteH(n))
       setStrokes((prev) => [...prev, host ? { ...st, note: host.id, x: st.x - host.x, y: st.y - host.y } : st])
+      // the colour just drawn with becomes the first of the four recent swatches
+      setInkPrefs((p) => {
+        const recent = p.recent ?? INK_RECENT_DEFAULT
+        return recent[0]?.toLowerCase() === st.color.toLowerCase() ? p : { ...p, recent: pushRecentInk(recent, st.color) }
+      })
     },
-    [setStrokes],
+    [setStrokes, setInkPrefs],
   )
   const eraseStrokes = useCallback(
     (changes: Map<string, InkStroke[]>) => {
@@ -780,6 +806,50 @@ export function Workspace({
     window.addEventListener('pointercancel', up)
   }
 
+  // ---------- middle mouse button: always moves the camera (over notes, frames, buttons too) ----------
+  const drawingRef = useRef(drawing)
+  drawingRef.current = drawing
+  const panFns = useRef({ startPan, panTo, endPan })
+  panFns.current = { startPan, panTo, endPan }
+  useEffect(() => {
+    const onBoard = (e: MouseEvent) => e.button === 1 && !!(e.target as Element | null)?.closest?.('.canvas-board')
+    // no browser auto-scroll / middle-click paste or link opening on the board
+    const block = (e: MouseEvent) => {
+      if (onBoard(e)) e.preventDefault()
+    }
+    const down = (e: PointerEvent) => {
+      // while drawing, the drawing layer already pans with the middle button
+      if (!onBoard(e) || drawingRef.current) return
+      e.preventDefault()
+      e.stopPropagation()
+      const id = e.pointerId
+      panFns.current.startPan(e.clientX, e.clientY)
+      document.body.classList.add('is-middle-panning')
+      const move = (ev: PointerEvent) => {
+        if (ev.pointerId === id) panFns.current.panTo(ev.clientX, ev.clientY)
+      }
+      const up = (ev: PointerEvent) => {
+        if (ev.pointerId !== id) return
+        window.removeEventListener('pointermove', move, true)
+        window.removeEventListener('pointerup', up, true)
+        window.removeEventListener('pointercancel', up, true)
+        document.body.classList.remove('is-middle-panning')
+        panFns.current.endPan()
+      }
+      window.addEventListener('pointermove', move, true)
+      window.addEventListener('pointerup', up, true)
+      window.addEventListener('pointercancel', up, true)
+    }
+    window.addEventListener('pointerdown', down, true)
+    window.addEventListener('mousedown', block, true)
+    window.addEventListener('auxclick', block, true)
+    return () => {
+      window.removeEventListener('pointerdown', down, true)
+      window.removeEventListener('mousedown', block, true)
+      window.removeEventListener('auxclick', block, true)
+    }
+  }, [])
+
   // ---------- photos ----------
   const [imageEditId, setImageEditId] = useState<string | null>(null)
   const patchNoteImage = useCallback(
@@ -1259,6 +1329,12 @@ export function Workspace({
         return
       }
       const text = e.clipboardData?.getData('text/plain') ?? ''
+      // someone's Aether board link → offer to open it as a new workspace
+      if (shareLinkRef.current && parseShareLink(text)) {
+        e.preventDefault()
+        shareLinkRef.current(text)
+        return
+      }
       if (boardClip && (!text || text === boardClip.text)) {
         e.preventDefault()
         c.pasteClip(boardClip)
@@ -1420,13 +1496,44 @@ export function Workspace({
     placeChip(tag, color, { x: c.x - 50 + k * 14, y: c.y - 15 + k * 14 }, false)
   }
 
+  const shareLinkRef = useRef(onShareLink)
+  shareLinkRef.current = onShareLink
   const zoomPercent = Math.round(transform.scale * 100)
   useEffect(() => {
     if (active) onZoomChange?.(zoomPercent)
   }, [active, zoomPercent, onZoomChange])
   useEffect(() => {
     if (!apiRef) return
-    apiRef.current = { newNote: () => createNote('') }
+    apiRef.current = {
+      newNote: () => createNote(''),
+      selectionSize: () => {
+        const c = collectSelection()
+        return c ? c.notes.length + c.frames.length + c.chips.length + c.strokes.filter((st) => !st.note).length : 0
+      },
+      shareSnapshot: ({ selection, skipPrivate }) => {
+        const src = selection ? collectSelection() : null
+        let ns = src ? src.notes : structuredClone(notes)
+        let cs = src ? src.connections : structuredClone(connections)
+        const fs = src ? src.frames : structuredClone(frames)
+        let ch = src ? src.chips : structuredClone(chips)
+        let st = src ? src.strokes : structuredClone(strokes)
+        let privateSkipped = 0
+        if (skipPrivate) {
+          // switched-on "private" buttons, and notes tagged with a private tag
+          const hidden = new Set(
+            ns.filter((n) => noteFx.get(n.id)?.some((f) => f.effect === 'private') || n.tags.some((t) => chipEffect({ tag: t }) === 'private')).map((n) => n.id),
+          )
+          privateSkipped = hidden.size
+          ns = ns.filter((n) => !hidden.has(n.id))
+          cs = cs.filter((c) => !hidden.has(c.from) && !hidden.has(c.to))
+          st = st.filter((x) => !(x.note && hidden.has(x.note)))
+          ch = ch.map((c) => (c.targets?.some((t) => hidden.has(t)) ? { ...c, targets: c.targets.filter((t) => !hidden.has(t)) } : c))
+        }
+        const photos = ns.filter((n) => n.image).length
+        ns = ns.map((n) => (n.image ? { ...n, image: undefined } : n))
+        return { notes: ns, connections: cs, frames: fs, chips: ch, strokes: st, privateSkipped, photos }
+      },
+    }
   })
   const menuNote = menu ? notes.find((n) => n.id === menu.id) : undefined
   const frameMenuFrame = frameMenu ? frames.find((f) => f.id === frameMenu.id) : undefined
@@ -1630,6 +1737,7 @@ export function Workspace({
             <InkToolbar
               tool={inkPrefs.tool}
               color={inkPrefs.color}
+              recent={inkPrefs.recent ?? INK_RECENT_DEFAULT}
               onTool={(tool) => setInkPrefs((p) => ({ ...p, tool }))}
               onColor={(color) => setInkPrefs((p) => ({ ...p, color }))}
               canUndo={canUndo}

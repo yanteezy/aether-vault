@@ -1,18 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Workspace, type WorkspaceApi } from './Workspace'
+import { fitTransform, Workspace, type WorkspaceApi } from './Workspace'
 import { TopBar, type ViewMode } from './components/TopBar'
 import { SettingsModal } from './components/SettingsModal'
 import { SplashScreen, shouldShowSplash } from './components/SplashScreen'
 import { UpdateNotice } from './components/UpdateNotice'
 import { LanguagePicker } from './components/LanguagePicker'
 import pkg from '../package.json'
-import { applySettings, DEFAULT_SETTINGS, type AppSettings, type ThemeId } from './settings/settings'
+import { applySettings, DEFAULT_SETTINGS, type AppSettings, type CanvasBg, type ThemeId } from './settings/settings'
 import { usePersistentState } from './hooks/usePersistentState'
 import { DEFAULT_VAULT_ID, deleteVaultData } from './hooks/vaultKeys'
 import type { Vault } from './types/note'
 import { LangContext, setLang, t } from './i18n'
 import { OLD_DEMO_IDS } from './data/guide'
 import { collectUnusedImages } from './features/images'
+import { parseShareLink, type SharedBoard, type ShareToken } from './features/share'
+import { ShareMenu } from './components/ShareMenu'
+import { ShareOpenDialog } from './components/ShareOpenDialog'
+import { vaultKey } from './hooks/vaultKeys'
 import './App.css'
 
 /**
@@ -64,6 +68,19 @@ export default function App() {
   const [viewMode, setViewMode] = usePersistentState<ViewMode>('view-mode', 'canvas')
   const [zoomPercent, setZoomPercent] = useState(100)
   const apiRef = useRef<WorkspaceApi | null>(null)
+  // ---------- sharing ----------
+  const [shareOpen, setShareOpen] = useState(false)
+  const shareBtnRef = useRef<HTMLButtonElement>(null)
+  const [copyNonce, setCopyNonce] = useState(0)
+  const [incoming, setIncoming] = useState<ShareToken | null>(null)
+  /** A pasted / opened text: if it is an Aether board link, show the "open as a new workspace" dialog. */
+  const handleShareLink = useCallback((text: string) => {
+    const link = parseShareLink(text)
+    if (!link) return false
+    setShareOpen(false)
+    setIncoming(link)
+    return true
+  }, [])
   const [splash, setSplash] = useState(shouldShowSplash)
   const hideSplash = useCallback(() => setSplash(false), [])
 
@@ -132,9 +149,9 @@ export default function App() {
     return () => window.removeEventListener('keydown', h, true)
   }, [switchTabBy])
 
-  /** A workspace can have its own theme; otherwise the one from Settings. */
+  /** A workspace can have its own theme (and canvas background with it); otherwise the ones from Settings. */
   const withVaultTheme = useCallback(
-    (v: Vault) => (v.theme ? { ...settings, theme: v.theme } : settings),
+    (v: Vault) => (v.theme ? { ...settings, theme: v.theme, canvasBg: v.canvasBg ?? settings.canvasBg } : settings),
     [settings],
   )
   const effective = useMemo(() => withVaultTheme(vault), [withVaultTheme, vault])
@@ -145,7 +162,21 @@ export default function App() {
     return () => window.clearTimeout(t)
   }, [])
   const setVaultTheme = useCallback(
-    (theme: ThemeId | undefined) => setVaults((prev) => prev.map((v) => (v.id === vault.id ? { ...v, theme } : v))),
+    (theme: ThemeId | undefined) =>
+      setVaults((prev) =>
+        prev.map((v) =>
+          v.id !== vault.id
+            ? v
+            : theme
+              ? // binding: the workspace keeps the background it had (or takes the current one)
+                { ...v, theme, canvasBg: v.canvasBg ?? settings.canvasBg }
+              : { ...v, theme: undefined, canvasBg: undefined },
+        ),
+      ),
+    [setVaults, vault.id, settings.canvasBg],
+  )
+  const setVaultCanvasBg = useCallback(
+    (canvasBg: CanvasBg) => setVaults((prev) => prev.map((v) => (v.id === vault.id ? { ...v, canvasBg } : v))),
     [setVaults, vault.id],
   )
   const patchSettings = useCallback(
@@ -182,6 +213,75 @@ export default function App() {
     slideTo(vault.id, id, vaults.length, vaults)
     setSettingsOpen(false)
   }, [setVaults, slideTo, vault.id, vaults])
+
+  /** A shared board → a new workspace tab with its content, centred in view. */
+  const openSharedBoard = useCallback(
+    (b: SharedBoard) => {
+      const id = `v${Date.now().toString(36)}`
+      const put = (k: string, v: unknown) => localStorage.setItem('aethel-vault:' + vaultKey(id, k), JSON.stringify(v))
+      put('notes', b.notes)
+      put('connections', b.connections)
+      put('frames', b.frames)
+      put('chips', b.chips)
+      put('ink', b.strokes)
+      // frame the content (free drawings included) so it is in view right away
+      const xs: number[] = []
+      const ys: number[] = []
+      for (const o of [...b.notes, ...b.frames]) xs.push(o.x, o.x + o.width), ys.push(o.y, o.y + (o.height || 160))
+      for (const st of b.strokes)
+        if (!st.note) for (let i = 0; i < st.points.length; i += 2) xs.push(st.x + st.points[i]), ys.push(st.y + st.points[i + 1])
+      if (xs.length) {
+        const x = Math.min(...xs)
+        const y = Math.min(...ys)
+        put('canvas-transform', fitTransform({ x: x - 40, y: y - 40, width: Math.max(...xs) - x + 80, height: Math.max(...ys) - y + 80 }))
+      }
+      setVaults((prev) => {
+        const names = new Set(prev.map((v) => v.name))
+        const base = (b.name.trim() || t('Спільна дошка')).replace(/ \(\d+\)$/, '')
+        let name = base
+        for (let n = 2; names.has(name); n++) name = `${base} (${n})`
+        return [...prev, { id, name, createdAt: Date.now(), ...(b.theme ? { theme: b.theme.theme, canvasBg: b.theme.canvasBg } : {}) }]
+      })
+      slideTo(vault.id, id, vaults.length, vaults)
+      setIncoming(null)
+    },
+    [setVaults, slideTo, vault.id, vaults],
+  )
+
+  // links opened from outside: aether://open#… (the desktop app's link scheme)
+  useEffect(() => {
+    if (!('__TAURI_INTERNALS__' in window)) return
+    let off: (() => void) | undefined
+    let dead = false
+    void import('@tauri-apps/plugin-deep-link')
+      .then(async ({ getCurrent, onOpenUrl }) => {
+        const first = await getCurrent().catch(() => null)
+        if (first?.length) first.some((u) => handleShareLink(u))
+        const un = await onOpenUrl((urls) => urls.some((u) => handleShareLink(u)))
+        if (dead) un()
+        else off = un
+      })
+      .catch(() => {})
+    return () => {
+      dead = true
+      off?.()
+    }
+  }, [handleShareLink])
+
+  // Ctrl/⌘ + Shift + C: copy a link to the board (or the selection) with the current share options
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || !e.shiftKey || e.altKey || e.code !== 'KeyC') return
+      const el = e.target as HTMLElement | null
+      if (el?.closest?.('input, textarea, [contenteditable="true"]')) return
+      e.preventDefault()
+      e.stopPropagation()
+      setShareOpen(true)
+      setCopyNonce((n) => n + 1)
+    }
+    window.addEventListener('keydown', h, true)
+    return () => window.removeEventListener('keydown', h, true)
+  }, [])
 
   const renameVault = useCallback(
     (id: string, name: string) => setVaults((prev) => prev.map((v) => (v.id === id ? { ...v, name } : v))),
@@ -231,6 +331,9 @@ export default function App() {
           onViewMode={setViewMode}
           onNewNote={() => apiRef.current?.newNote()}
           onOpenSettings={() => setSettingsOpen(true)}
+          onShare={() => setShareOpen((v) => !v)}
+          shareOpen={shareOpen}
+          shareRef={shareBtnRef}
           zoomPercent={zoomPercent}
           showZoom={settings.showZoom}
         />
@@ -258,6 +361,7 @@ export default function App() {
                   onZoomChange={isActive ? setZoomPercent : undefined}
                   onSwitchTab={switchTabBy}
                   tabCount={vaults.length}
+                  onShareLink={isActive ? handleShareLink : undefined}
                 />
               </div>
             )
@@ -274,7 +378,21 @@ export default function App() {
         onOpenGuide={openGuide}
         vaultTheme={vault.theme}
         onVaultTheme={setVaultTheme}
+        vaultCanvasBg={vault.canvasBg}
+        onVaultCanvasBg={setVaultCanvasBg}
       />
+      <ShareMenu
+        open={shareOpen}
+        anchor={shareBtnRef.current}
+        onClose={() => setShareOpen(false)}
+        api={apiRef}
+        copyNonce={copyNonce}
+        vaultId={vault.id}
+        vaultName={vault.name}
+        theme={effective.theme}
+        canvasBg={effective.canvasBg}
+      />
+      {incoming && !splash && <ShareOpenDialog link={incoming} onOpen={openSharedBoard} onCancel={() => setIncoming(null)} />}
       {splash && <SplashScreen onDone={hideSplash} />}
       <UpdateNotice currentVersion={pkg.version} />
     </LangContext.Provider>

@@ -49,6 +49,8 @@ export interface Vault {
   createdAt: number
   /** Own theme of this workspace (otherwise the one from Settings). */
   theme?: import('../settings/settings').ThemeId
+  /** Own canvas background — used together with the workspace's own theme. */
+  canvasBg?: import('../settings/settings').CanvasBg
   /** Starts with the feature guide instead of an empty canvas. */
   seed?: 'guide'
 }
@@ -99,7 +101,9 @@ export interface Connection {
 // ---------- freehand ink ----------
 
 export type InkTool = 'pen' | 'marker' | 'eraser'
-export type InkColor = 'chalk' | 'cyan' | 'lavender' | 'amber' | 'mint'
+export type InkPreset = 'chalk' | 'cyan' | 'lavender' | 'amber' | 'mint'
+/** A preset (follows the theme for 'chalk') or any colour picked in the palette ('#rrggbb'). */
+export type InkColor = InkPreset | `#${string}`
 
 export const INK_COLORS: { id: InkColor; label: string; hex: string }[] = [
   { id: 'chalk', label: 'Крейда', hex: '#ffffff' },
@@ -108,6 +112,19 @@ export const INK_COLORS: { id: InkColor; label: string; hex: string }[] = [
   { id: 'amber', label: 'Бурштиновий', hex: '#fbbf24' },
   { id: 'mint', label: 'М’ятний', hex: '#34d399' },
 ]
+
+/** The four swatches show the last colours used; these fill it on first run. */
+export const INK_RECENT_DEFAULT: InkColor[] = ['chalk', 'cyan', 'lavender', 'amber']
+/** Palette: soft neutrals first, then calm and vivid hues that read on dark and light boards. */
+export const INK_PALETTE: `#${string}`[] = [
+  '#ffffff', '#d1d5db', '#9ca3af', '#4b5563', '#1f2937', '#000000',
+  '#fca5a5', '#f87171', '#fb923c', '#fbbf24', '#fde047', '#a3e635',
+  '#34d399', '#2dd4bf', '#22d3ee', '#60a5fa', '#818cf8', '#c084fc',
+  '#f472b6', '#e879f9', '#a78bfa', '#93c5fd', '#fcd34d', '#d6b38a',
+]
+/** Put a just-used colour first in the recent list (4 entries, no repeats). */
+export const pushRecentInk = (list: InkColor[], c: InkColor): InkColor[] =>
+  [c, ...list.filter((x) => x.toLowerCase() !== c.toLowerCase())].slice(0, 4)
 
 export const INK_WIDTH: Record<'pen' | 'marker', number> = { pen: 2.5, marker: 14 }
 export const MARKER_ALPHA = 0.35

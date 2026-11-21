@@ -171,3 +171,10 @@ body[data-theme='light'] .connection__cut circle { fill: #fff; stroke: rgba(0, 0
 body[data-theme='light'] .connection__cut path { stroke: #1d1d1f; }
 body[data-theme='light'] .connection__cut:hover path { stroke: #fff; }
 body[data-theme='light'] .connection__cut:hover circle { fill: #ff453a; }
+
+/* middle mouse button held: the camera moves (Workspace.tsx) */
+body.is-middle-panning,
+body.is-middle-panning * {
+  cursor: grabbing !important;
+  user-select: none;
+}

@@ -18,6 +18,10 @@ interface TopBarProps {
   onViewMode: (m: ViewMode) => void
   onNewNote: () => void
   onOpenSettings: () => void
+  /** Open / close the Share popover. */
+  onShare: () => void
+  shareOpen: boolean
+  shareRef: React.RefObject<HTMLButtonElement | null>
   zoomPercent: number
   showZoom: boolean
 }
@@ -36,6 +40,9 @@ export function TopBar({
   onViewMode,
   onNewNote,
   onOpenSettings,
+  onShare,
+  shareOpen,
+  shareRef,
   zoomPercent,
   showZoom,
 }: TopBarProps) {
@@ -181,6 +188,21 @@ export function TopBar({
             {zoomPercent}%
           </span>
         )}
+        <button
+          ref={shareRef}
+          className={`top-bar__icon-btn${shareOpen ? ' is-active' : ''}`}
+          onClick={onShare}
+          aria-label={tr('Поширити')}
+          aria-expanded={shareOpen}
+          title={tr('Поширити') + (IS_MAC ? ' (⇧⌘C)' : ' (Ctrl+Shift+C)')}
+        >
+          <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden>
+            <circle cx="14.5" cy="5" r="2.2" />
+            <circle cx="5.5" cy="10" r="2.2" />
+            <circle cx="14.5" cy="15" r="2.2" />
+            <path d="M7.5 9l5-2.8M7.5 11l5 2.8" />
+          </svg>
+        </button>
         <button
           className="top-bar__icon-btn"
           onClick={onOpenSettings}

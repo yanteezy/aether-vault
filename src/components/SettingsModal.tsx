@@ -6,6 +6,7 @@ import {
   type AppSettings,
   type GridStyle,
   type ThemeId,
+  type CanvasBg,
   IS_MAC,
   keyLabel,
   radialKeyFromEvent,
@@ -18,6 +19,7 @@ import { FontSizeControl } from './FontSizePicker'
 import { LANGS, useT, type Lang } from '../i18n'
 import { requestUpdateCheck } from './UpdateNotice'
 import { NoteFontPicker } from './FontPicker'
+import { BackupPanel } from './BackupPanel'
 import './SettingsModal.css'
 
 type Section = 'general' | 'design' | 'shortcuts' | 'about'
@@ -41,9 +43,12 @@ interface SettingsModalProps {
   /** Own theme of the current workspace (undefined = follows Settings). */
   vaultTheme?: ThemeId
   onVaultTheme: (theme: ThemeId | undefined) => void
+  /** Background of this workspace while it has its own theme. */
+  vaultCanvasBg?: CanvasBg
+  onVaultCanvasBg: (bg: CanvasBg) => void
 }
 
-export function SettingsModal({ open, settings, vaultName, onRenameVault, onChange, onClose, onOpenGuide, vaultTheme, onVaultTheme }: SettingsModalProps) {
+export function SettingsModal({ open, settings, vaultName, onRenameVault, onChange, onClose, onOpenGuide, vaultTheme, onVaultTheme, vaultCanvasBg, onVaultCanvasBg }: SettingsModalProps) {
   const tr = useT()
   const [section, setSection] = useState<Section>('design')
   const [recording, setRecording] = useState(false)
@@ -144,6 +149,7 @@ export function SettingsModal({ open, settings, vaultName, onRenameVault, onChan
               </Row>
             </div>
           )}
+          {section === 'general' && <BackupPanel />}
 
           {section === 'design' && (
             <>
@@ -178,21 +184,26 @@ export function SettingsModal({ open, settings, vaultName, onRenameVault, onChan
                   <div className="settings__row settings__row--stack">
                     <div className="settings__label">
                       {tr('Фон полотна')}
-                      <span className="settings__hint">{tr('Спокійні тони й тихі патерни — для тем «Скло» і «Світла»')}</span>
+                      <span className="settings__hint">
+                        {vaultTheme ? tr('Лише для «{name}»', { name: vaultName }) : tr('Спокійні тони й тихі патерни — для тем «Скло» і «Світла»')}
+                      </span>
                     </div>
                     <div className="settings__bgs" role="radiogroup" aria-label={tr('Фон полотна')}>
-                      {CANVAS_BGS.map((b) => (
+                      {CANVAS_BGS.map((b) => {
+                        const current = vaultTheme ? (vaultCanvasBg ?? settings.canvasBg) : settings.canvasBg
+                        return (
                         <button
                           key={b.id}
                           role="radio"
-                          aria-checked={settings.canvasBg === b.id}
-                          className={`settings__bg${settings.canvasBg === b.id ? ' is-active' : ''}`}
-                          onClick={() => onChange({ canvasBg: b.id })}
+                          aria-checked={current === b.id}
+                          className={`settings__bg${current === b.id ? ' is-active' : ''}`}
+                          onClick={() => (vaultTheme ? onVaultCanvasBg(b.id) : onChange({ canvasBg: b.id }))}
                         >
                           <span className="settings__bg-tile canvas-bg-swatch" data-bg={b.id} />
                           <span className="settings__bg-name">{tr(b.name)}</span>
                         </button>
-                      ))}
+                        )
+                      })}
                     </div>
                   </div>
                 )}
@@ -330,6 +341,9 @@ export function SettingsModal({ open, settings, vaultName, onRenameVault, onChan
                 [IS_MAC ? '⌘,' : 'Ctrl+,', 'Налаштування'],
                 [tr('Колесо / два пальці / щипок'), 'Масштаб полотна'],
                 [tr('Перетягування порожнього місця'), 'Переміщення полотна'],
+                [tr('Затиснута середня кнопка миші'), 'Переміщення полотна будь-де'],
+                [IS_MAC ? '⇧⌘C' : 'Ctrl+Shift+C', 'Скопіювати посилання на дошку'],
+                [IS_MAC ? '⌘V' : 'Ctrl+V', 'Вставити посилання на дошку — відкрити її'],
                 [tr('⇧ + колесо'), 'Прокрутка вбік'],
                 [tr('Подвійний клік'), 'Нова нотатка на полотні'],
                 [IS_MAC ? '⌫' : 'Delete', 'Видалити виділені нотатки чи зв’язок'],

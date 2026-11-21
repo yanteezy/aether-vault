@@ -1,4 +1,10 @@
 What's new · Що нового
+• Share a board with a link (the Share button, top right): the whole board travels inside the link — no server, no account. Optional password: the board is then encrypted (AES-256) and won't open without it. Private notes can be left out · Поширення дошки посиланням (кнопка «Поширити» справа зверху): уся дошка всередині посилання — без сервера й акаунтів. За бажанням пароль: тоді дошка шифрується (AES-256) і без нього не відкривається. Особисті нотатки можна не включати
+• Opening a link: click it, or paste it into Aether (Ctrl+V) — the board opens as a new workspace · Відкриття посилання: клікніть або вставте його в Aether (Ctrl+V) — дошка відкриється як нове сховище
+• Export and import your data (Settings → General): pick notes, themes and settings, get one .aether file, open it in Aether on another computer · Експорт та імпорт даних (Налаштування → Загальні): оберіть нотатки, теми й налаштування — один файл .aether, який відкривається в Aether на іншому компʼютері
+• Hold the middle mouse button anywhere to move the canvas — over notes, frames and buttons too · Затисніть середню кнопку миші будь-де, щоб рухати полотно, навіть над нотатками, рамками й кнопками
+• Drawing palette: any colour, and the four swatches remember your last-used colours · Палітра в малюванні: будь-який колір, а чотири кружечки показують останні використані
+• A workspace with its own theme now keeps its own canvas background too · Сховище з власною темою тепер має й власний фон полотна
 • Canvas backgrounds for the Glass and Light themes: calm tones and quiet patterns (Settings → Design) · Фони полотна для тем «Скло» і «Світла»: спокійні тони й тихі патерни (Налаштування → Дизайн)
 • First launch: the logo traces ∞ while Aether loads, then rises to greet you with the language choice · Перший запуск: лого обводить ∞ під час завантаження й піднімається до вибору мови
 • New launch animation: a light traces ∞ around the logo while Aether loads, then becomes the dock · Нова заставка: світло обводить ∞ навколо лого під час завантаження й стає доком

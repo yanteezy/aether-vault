@@ -3,9 +3,10 @@ import { INK_COLORS, INK_WIDTH, MARKER_ALPHA, type InkColor, type InkStroke, typ
 import type { CanvasTransform } from '../hooks/useCanvasTransform'
 import './Ink.css'
 
-const HEX = Object.fromEntries(INK_COLORS.map((c) => [c.id, c.hex])) as Record<InkColor, string>
+const HEX = Object.fromEntries(INK_COLORS.map((c) => [c.id, c.hex])) as Record<string, string>
 /** «Крейда» follows the theme (white on dark, graphite on light). */
-export const inkStroke = (c: InkColor) => (c === 'chalk' ? 'var(--ink-chalk, #ffffff)' : HEX[c])
+export const inkStroke = (c: InkColor) =>
+  c === 'chalk' ? 'var(--ink-chalk, #ffffff)' : c.startsWith('#') ? c : (HEX[c] ?? '#ffffff')
 
 /** Smooth SVG path through the points (quadratic curves via midpoints). */
 export function strokePath(p: number[]): string {

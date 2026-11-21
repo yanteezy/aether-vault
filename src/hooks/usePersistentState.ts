@@ -2,6 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 
 const STORAGE_PREFIX = 'aethel-vault:'
 
+/** Set while a backup is being imported: the app reloads right after, and no old state may be written back. */
+let suspended = false
+export function suspendPersistence() {
+  suspended = true
+}
+
 /**
  * Generic persisted-state hook. Any future tab, panel or setting should
  * store its state through this hook (new unique key) so it is remembered
@@ -28,6 +34,7 @@ export function usePersistentState<T>(key: string, initial: T) {
       return
     }
     const write = () => {
+      if (suspended) return
       try {
         localStorage.setItem(storageKey, JSON.stringify(latest.current))
       } catch {

@@ -86,6 +86,11 @@
   transform: scale(0.92);
 }
 
+.top-bar__icon-btn.is-active {
+  background: color-mix(in srgb, var(--accent) 26%, transparent);
+  color: var(--text-primary);
+}
+
 /* floating pills (spec: Gemini) */
 .top-bar__brand,
 .top-bar__new-note,

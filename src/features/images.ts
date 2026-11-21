@@ -49,8 +49,8 @@ function tx<T>(mode: IDBTransactionMode, run: (s: IDBObjectStore) => IDBRequest<
 
 export const getImage = (id: string) => tx<Blob | undefined>('readonly', (s) => s.get(id) as IDBRequest<Blob | undefined>)
 export const deleteImage = (id: string) => tx('readwrite', (s) => s.delete(id))
-const putImage = (id: string, blob: Blob) => tx('readwrite', (s) => s.put(blob, id))
-const allIds = () => tx<IDBValidKey[]>('readonly', (s) => s.getAllKeys())
+export const putImage = (id: string, blob: Blob) => tx('readwrite', (s) => s.put(blob, id))
+export const allIds = () => tx<IDBValidKey[]>('readonly', (s) => s.getAllKeys())
 
 export const isImageFile = (f: { type: string }) => /^image\//.test(f.type)
 

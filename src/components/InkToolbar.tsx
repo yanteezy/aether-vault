@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { INK_COLORS, type InkColor, type InkTool } from '../types/note'
+import { useEffect, useRef, useState } from 'react'
+import { INK_COLORS, INK_PALETTE, type InkColor, type InkTool } from '../types/note'
 import { inkStroke } from './Ink'
 import { useT } from '../i18n'
 import { IS_MAC } from '../settings/settings'
@@ -11,9 +11,14 @@ const TOOLS: { id: InkTool; label: string; key: string }[] = [
   { id: 'eraser', label: 'Гумка', key: 'E' },
 ]
 
+const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
+const colorName = (c: InkColor) => INK_COLORS.find((x) => x.id === c)?.label ?? c.toUpperCase()
+
 interface Props {
   tool: InkTool
   color: InkColor
+  /** The four last-used colours, most recent first. */
+  recent: InkColor[]
   onTool: (t: InkTool) => void
   onColor: (c: InkColor) => void
   canUndo: boolean
@@ -24,9 +29,33 @@ interface Props {
 }
 
 /** Compact glass palette shown above the Command Dock while Draw mode is on. */
-export function InkToolbar({ tool, color, onTool, onColor, canUndo, hasStrokes, onUndo, onClear, onDone }: Props) {
+export function InkToolbar({ tool, color, recent, onTool, onColor, canUndo, hasStrokes, onUndo, onClear, onDone }: Props) {
   const tr = useT()
   const [confirmClear, setConfirmClear] = useState(false)
+  const [paletteOpen, setPaletteOpen] = useState(false)
+  const paletteRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!paletteOpen) return
+    const away = (e: PointerEvent) => {
+      if (!paletteRef.current?.contains(e.target as Node)) setPaletteOpen(false)
+    }
+    const esc = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      e.stopPropagation()
+      setPaletteOpen(false)
+    }
+    window.addEventListener('pointerdown', away, true)
+    window.addEventListener('keydown', esc, true)
+    return () => {
+      window.removeEventListener('pointerdown', away, true)
+      window.removeEventListener('keydown', esc, true)
+    }
+  }, [paletteOpen])
+  const pick = (c: InkColor) => {
+    onColor(c)
+    if (tool === 'eraser') onTool('pen')
+  }
+  const inRecent = recent.some((c) => same(c, color))
   useEffect(() => {
     if (!confirmClear) return
     const t = window.setTimeout(() => setConfirmClear(false), 2500)
@@ -60,21 +89,55 @@ export function InkToolbar({ tool, color, onTool, onColor, canUndo, hasStrokes, 
       <div className="ink-toolbar__sep" />
 
       <div className="ink-toolbar__group" role="radiogroup" aria-label={tr('Колір')}>
-        {INK_COLORS.map((c) => (
+        {recent.slice(0, 4).map((c, i) => (
           <button
-            key={c.id}
+            key={`${c}-${i}`}
             role="radio"
-            aria-checked={color === c.id}
-            aria-label={tr(c.label)}
-            title={tr(c.label)}
-            className={`ink-toolbar__swatch${color === c.id ? ' is-active' : ''}`}
-            style={{ '--sw': inkStroke(c.id) } as React.CSSProperties}
-            onClick={() => {
-              onColor(c.id)
-              if (tool === 'eraser') onTool('pen')
-            }}
+            aria-checked={same(color, c)}
+            aria-label={tr(colorName(c))}
+            title={tr(colorName(c))}
+            className={`ink-toolbar__swatch${same(color, c) ? ' is-active' : ''}`}
+            style={{ '--sw': inkStroke(c) } as React.CSSProperties}
+            onClick={() => pick(c)}
           />
         ))}
+        <div className="ink-palette" ref={paletteRef}>
+          <button
+            className={`ink-toolbar__swatch ink-palette__toggle${!inRecent ? ' is-active' : ''}${paletteOpen ? ' is-open' : ''}`}
+            aria-label={tr('Палітра')}
+            aria-expanded={paletteOpen}
+            title={tr('Палітра')}
+            style={!inRecent ? ({ '--cur': inkStroke(color) } as React.CSSProperties) : undefined}
+            onClick={() => setPaletteOpen((v) => !v)}
+          />
+          {paletteOpen && (
+            <div className="ink-palette__pop glass-panel-strong" role="dialog" aria-label={tr('Палітра')}>
+              <div className="ink-palette__grid">
+                {INK_PALETTE.map((hex) => (
+                  <button
+                    key={hex}
+                    className={`ink-palette__cell${same(color, hex) ? ' is-active' : ''}`}
+                    style={{ '--sw': hex } as React.CSSProperties}
+                    aria-label={hex}
+                    title={hex.toUpperCase()}
+                    onClick={() => {
+                      pick(hex)
+                      setPaletteOpen(false)
+                    }}
+                  />
+                ))}
+              </div>
+              <label className="ink-palette__custom">
+                <input
+                  type="color"
+                  value={color.startsWith('#') && color.length === 7 ? color : '#22d3ee'}
+                  onChange={(e) => pick(e.target.value as InkColor)}
+                />
+                <span>{tr('Свій колір…')}</span>
+              </label>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="ink-toolbar__sep" />
