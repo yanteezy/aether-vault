@@ -91,6 +91,24 @@ export function eraseFromStroke(s: InkStroke, ax: number, ay: number, bx: number
     .map((pc) => ({ ...s, id: pieceId(), points: simplify(pc, step / 2) }))
 }
 
+/** How tightly the pen follows the pointer (lower = smoother, laggier). */
+const STREAMLINE = 0.38
+
+/** A couple of passes of neighbour averaging; ends stay where they were drawn. */
+function relax(p: number[], passes: number): number[] {
+  let a = p
+  for (let k = 0; k < passes; k++) {
+    if (a.length < 6) return a
+    const b = a.slice()
+    for (let i = 2; i < a.length - 2; i += 2) {
+      b[i] = (a[i - 2] + a[i] * 2 + a[i + 2]) / 4
+      b[i + 1] = (a[i - 1] + a[i + 1] * 2 + a[i + 3]) / 4
+    }
+    a = b
+  }
+  return a
+}
+
 /** Drop the extra densified points on straight runs (keeps files small). */
 function simplify(p: number[], tol: number): number[] {
   if (p.length <= 4) return p.map((v) => Math.round(v * 10) / 10)
@@ -200,6 +218,8 @@ export function InkCapture({
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null)
   const [space, setSpace] = useState(false)
   const pts = useRef<number[] | null>(null)
+  /** Last raw pointer position (the smoothed line trails slightly behind it). */
+  const rawEnd = useRef<[number, number] | null>(null)
   const mode = useRef<'draw' | 'erase' | 'pan' | null>(null)
   const raf = useRef(0)
   const t = useRef(transform)
@@ -256,7 +276,9 @@ export function InkCapture({
 
   const flush = () => {
     cancelAnimationFrame(raf.current)
-    raf.current = requestAnimationFrame(() => setLive(pts.current ? [...pts.current] : null))
+    raf.current = requestAnimationFrame(() =>
+      setLive(pts.current ? (rawEnd.current ? [...pts.current, ...rawEnd.current] : [...pts.current]) : null),
+    )
   }
 
   return (
@@ -285,6 +307,7 @@ export function InkCapture({
         }
         mode.current = 'draw'
         pts.current = toWorld(e.clientX, e.clientY, e.currentTarget)
+        rawEnd.current = null
         flush()
       }}
       onPointerMove={(e) => {
@@ -294,12 +317,18 @@ export function InkCapture({
         if (mode.current === 'pan') return onPanMove(e)
         if (mode.current === 'erase') return erase(e)
         if (mode.current !== 'draw' || !pts.current) return
-        const minStep = 1.2 / t.current.scale
+        const minStep = 1.5 / t.current.scale
         const events = e.nativeEvent.getCoalescedEvents?.() ?? [e.nativeEvent]
         for (const ev of events.length ? events : [e.nativeEvent]) {
           const [x, y] = toWorld(ev.clientX, ev.clientY, e.currentTarget)
+          rawEnd.current = [x, y]
+          // streamline: the pen follows the pointer on a short elastic, which irons out hand tremor
           const p = pts.current
-          if (Math.hypot(x - p[p.length - 2], y - p[p.length - 1]) >= minStep) p.push(x, y)
+          const lx = p[p.length - 2]
+          const ly = p[p.length - 1]
+          const sx = lx + (x - lx) * STREAMLINE
+          const sy = ly + (y - ly) * STREAMLINE
+          if (Math.hypot(sx - lx, sy - ly) >= minStep) p.push(sx, sy)
         }
         flush()
       }}
@@ -310,8 +339,12 @@ export function InkCapture({
         if (m === 'pan') return onPanEnd(e)
         if (m === 'erase') return onEraseEnd()
         if (m !== 'draw' || !pts.current) return
-        const p = pts.current
+        const end = rawEnd.current
+        rawEnd.current = null
+        let p = pts.current
         pts.current = null
+        if (end && Math.hypot(end[0] - p[p.length - 2], end[1] - p[p.length - 1]) > 0.5) p.push(end[0], end[1])
+        p = simplify(relax(p, 2), 0.25 / t.current.scale)
         cancelAnimationFrame(raf.current)
         setLive(null)
         onAddStroke({

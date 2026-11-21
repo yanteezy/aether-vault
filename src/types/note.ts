@@ -167,6 +167,14 @@ export const CHIP_COLORS: Record<ChipColor, string> = {
 /** A tag button on the canvas: click filters notes by its tag, drop it on a note to tag it. */
 export type ChipSize = 's' | 'm' | 'l'
 
+export const CHIP_SCALE_MIN = 0.6
+export const CHIP_SCALE_MAX = 3
+/** Current free size of a button (old S / L presets map onto it). */
+export const chipScale = (c: { size?: ChipSize; scale?: number }) =>
+  c.scale ?? (c.size === 's' ? 0.8 : c.size === 'l' ? 1.25 : 1)
+export const clampChipScale = (v: number) =>
+  Math.round(Math.min(CHIP_SCALE_MAX, Math.max(CHIP_SCALE_MIN, v)) * 100) / 100
+
 /** What a triggered button does to the notes / frames wired to it. */
 export type TagEffect = 'important' | 'idea' | 'todo' | 'question' | 'done' | 'private' | 'highlight' | 'fade'
 
@@ -176,7 +184,10 @@ export interface TagChip {
   x: number
   y: number
   color: ChipColor
+  /** Legacy preset; superseded by `scale` once the button is resized by hand. */
   size?: ChipSize
+  /** Free size set by dragging the corner grip or the menu slider (1 = normal). */
+  scale?: number
   /** Effect of a custom button (ready-made buttons have a fixed one). */
   effect?: TagEffect
   /** Switched on: wired objects show the effect. */

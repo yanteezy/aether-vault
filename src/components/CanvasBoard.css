@@ -20,7 +20,19 @@
   top: 0;
   left: 0;
   transform-origin: 0 0;
+}
+
+/* GPU layer only while the view is moving; once it settles the browser
+   re-rasterizes text and borders crisply at the final zoom level. */
+.canvas-board.is-moving .canvas-board__world {
   will-change: transform;
+}
+
+/* Far zoom-out: glass blur is invisible at this size but costs a lot and
+   smears edges — drop it. */
+.canvas-board.is-far .note-card {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 .connections-layer {

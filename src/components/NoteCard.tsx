@@ -353,9 +353,9 @@ export function NoteCard({
               }
             }}
           />
-        ) : (
+        ) : note.title ? (
           <h3 className="note-card__title">{note.title}</h3>
-        )}
+        ) : null}
         {note.tags.length > 0 && (
           <div className="note-card__tags">
             {note.tags.map((tag) => (

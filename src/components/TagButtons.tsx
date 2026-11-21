@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { CHIP_COLORS, type ChipColor, type ChipSize, type TagChip } from '../types/note'
+import { CHIP_COLORS, clampChipScale, chipScale, type ChipColor, type ChipSize, type TagChip } from '../types/note'
 import { chipEffect, effectInfo, TAG_PRESETS } from '../effects/tagEffects'
 import { useT } from '../i18n'
 import './TagButtons.css'
@@ -253,6 +253,8 @@ interface ChipLayerProps {
   onWire: (chipId: string, clientX: number, clientY: number) => void
   onCutWire: (chipId: string, targetId: string) => void
   onContextMenu: (chipId: string, x: number, y: number) => void
+  /** Corner grip dragged: new free size of the button. */
+  onResize: (chipId: string, scale: number) => void
 }
 
 export function TagChipLayer({
@@ -273,6 +275,7 @@ export function TagChipLayer({
   onWire,
   onCutWire,
   onContextMenu,
+  onResize,
 }: ChipLayerProps) {
   const tr = useT()
   const [dragId, setDragId] = useState<string | null>(null)
@@ -296,7 +299,11 @@ export function TagChipLayer({
     }
     if (changed || next.size !== widths.size) setWidths(next)
   })
-  const chipRect = (c: TagChip): Rect => ({ x: c.x, y: c.y, width: widths.get(c.id) || 140, height: CHIP_H[c.size ?? 'm'] })
+  const chipRect = (c: TagChip): Rect => {
+    // hand-sized buttons are a normal (M) button scaled from the top-left corner
+    const k = c.scale ?? 1
+    return { x: c.x, y: c.y, width: (widths.get(c.id) || 140) * k, height: CHIP_H[c.scale != null ? 'm' : c.size ?? 'm'] * k }
+  }
 
   const toWorld = (cx: number, cy: number) => {
     const r = svgRef.current?.getBoundingClientRect()
@@ -332,9 +339,42 @@ export function TagChipLayer({
     window.addEventListener('pointercancel', cancel)
   }
 
+  /** Drag the corner grip: the button grows / shrinks with the pointer, keeping its proportions. */
+  const startResize = (e: React.PointerEvent, c: TagChip) => {
+    if (e.button !== 0) return
+    e.stopPropagation()
+    e.preventDefault()
+    const el = els.current.get(c.id)
+    const k0 = chipScale(c)
+    // unscaled size of the button as a normal (M) one
+    const baseW = (el?.offsetWidth ?? 140) * (c.scale != null ? 1 : 1 / k0)
+    const w0 = baseW * k0
+    const h0 = CHIP_H.m * k0
+    const sx = e.clientX
+    const sy = e.clientY
+    document.body.classList.add('is-chip-resizing')
+    const move = (ev: PointerEvent) => {
+      const s = live.current.scale
+      const dx = (ev.clientX - sx) / s
+      const dy = (ev.clientY - sy) / s
+      // project the pull onto the button's diagonal, so the corner stays under the pointer
+      const k = k0 * (1 + (dx * w0 + dy * h0) / (w0 * w0 + h0 * h0))
+      onResize(c.id, clampChipScale(k))
+    }
+    const up = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', up)
+      document.body.classList.remove('is-chip-resizing')
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', up)
+  }
+
   const startDrag = (e: React.PointerEvent<HTMLDivElement>, c: TagChip) => {
     if (e.button !== 0) return
-    if ((e.target as HTMLElement).closest('.tag-chip__remove, .tag-chip__jack')) return
+    if ((e.target as HTMLElement).closest('.tag-chip__remove, .tag-chip__jack, .tag-chip__grip')) return
     e.stopPropagation()
     e.preventDefault()
     onSelect(c.id)
@@ -450,8 +490,14 @@ export function TagChipLayer({
               else els.current.delete(c.id)
             }}
             data-chip-id={c.id}
-            className={`tag-chip tag-chip--canvas tag-chip--size-${c.size ?? 'm'}${on ? ' is-active' : ''}${wired ? ' is-wired' : ''}${selectedId === c.id || selectedIds?.includes(c.id) ? ' is-selected' : ''}${dragId === c.id ? ' is-dragging' : ''}${dragId === c.id && snapping ? ' is-snapping' : ''}`}
-            style={{ transform: `translate(${c.x}px, ${c.y}px)`, '--chip': CHIP_COLORS[c.color] } as React.CSSProperties}
+            className={`tag-chip tag-chip--canvas tag-chip--size-${c.scale != null ? 'm' : c.size ?? 'm'}${on ? ' is-active' : ''}${wired ? ' is-wired' : ''}${selectedId === c.id || selectedIds?.includes(c.id) ? ' is-selected' : ''}${dragId === c.id ? ' is-dragging' : ''}${dragId === c.id && snapping ? ' is-snapping' : ''}`}
+            style={
+              {
+                transform: `translate(${c.x}px, ${c.y}px)${c.scale != null && c.scale !== 1 ? ` scale(${c.scale})` : ''}`,
+                transformOrigin: '0 0',
+                '--chip': CHIP_COLORS[c.color],
+              } as React.CSSProperties
+            }
             role="switch"
             aria-checked={on}
             title={
@@ -488,6 +534,15 @@ export function TagChipLayer({
                 <path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
               </svg>
             </button>
+            <span
+              className="tag-chip__grip"
+              title={tr('Тягніть, щоб змінити розмір')}
+              onPointerDown={(e) => startResize(e, c)}
+              onDoubleClick={(e) => {
+                e.stopPropagation()
+                onResize(c.id, 1)
+              }}
+            />
           </div>
         )
       })}

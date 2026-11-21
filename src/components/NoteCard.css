@@ -25,7 +25,6 @@
     box-shadow var(--spring-fast),
     border-color var(--spring-fast),
     opacity var(--spring-fast);
-  will-change: transform;
 }
 
 .note-card:hover {

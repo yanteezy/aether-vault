@@ -325,4 +325,6 @@ export const EN: Record<string, string> = {
   'Усіх сховищ': 'All workspaces',
   'Фото': 'Photo',
   'Як показати фото': 'How to show the photo',
+  'Тягніть, щоб змінити розмір': 'Drag to resize',
+  'Звичайний розмір': 'Normal size',
 }

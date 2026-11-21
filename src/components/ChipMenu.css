@@ -57,3 +57,17 @@ body[data-theme='detective'] .chip-menu__fx-hint,
 body[data-theme='detective'] .chip-menu__fx-note,
 body[data-theme='detective'] .chip-menu__tip,
 body[data-theme='detective'] .chip-menu__section { color: rgba(40, 20, 5, 0.6); }
+
+.chip-menu__pct {
+  min-width: 44px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+  font: inherit;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.chip-menu__pct:hover { background: rgba(127, 127, 127, 0.18); color: var(--text-primary, #fff); }

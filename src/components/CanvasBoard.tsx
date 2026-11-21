@@ -207,6 +207,16 @@ export function CanvasBoard({
   const cleanup = useRef<(() => void) | null>(null)
   useEffect(() => () => cleanup.current?.(), [])
 
+  // Toggle `is-moving` while pan/zoom changes (see CanvasBoard.css).
+  const boardRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = boardRef.current
+    if (!el) return
+    el.classList.add('is-moving')
+    const id = window.setTimeout(() => el.classList.remove('is-moving'), 160)
+    return () => window.clearTimeout(id)
+  }, [transform.x, transform.y, transform.scale])
+
   const toWorld = (clientX: number, clientY: number): Point => {
     const t = live.current.transform
     return { x: (clientX - t.x) / t.scale, y: (clientY - t.y) / t.scale }
@@ -304,7 +314,8 @@ export function CanvasBoard({
 
   return (
     <div
-      className={`canvas-board grid-${grid}`}
+      ref={boardRef}
+      className={`canvas-board grid-${grid}${transform.scale < 0.45 ? ' is-far' : ''}`}
       style={
         {
           '--bg-x': `${transform.x}px`,

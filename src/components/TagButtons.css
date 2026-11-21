@@ -533,3 +533,35 @@ body[data-theme='mono'] .wire.is-on .wire__core { stroke: #f7f7f7; filter: none;
 body[data-theme='mono'] .wire__plug { fill: #f7f7f7; }
 body[data-theme='light'] .wire__cut:hover circle { fill: #ff453a; }
 body[data-theme='light'] .wire__cut:hover path { stroke: #fff; }
+
+/* ---------- free size: corner grip (drag to resize, double-click = normal) ---------- */
+.tag-chip__grip {
+  position: absolute;
+  right: -7px;
+  bottom: -7px;
+  width: 14px;
+  height: 14px;
+  cursor: nwse-resize;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--spring-fast);
+}
+.tag-chip__grip::before {
+  content: '';
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid var(--accent);
+  border-bottom: 2px solid var(--accent);
+  border-bottom-right-radius: 3px;
+}
+.tag-chip--canvas:hover .tag-chip__grip,
+.tag-chip--canvas.is-selected .tag-chip__grip {
+  opacity: 1;
+  pointer-events: auto;
+}
+.tag-chip__grip:hover::before { border-color: var(--text-primary, #fff); }
+body.is-chip-resizing,
+body.is-chip-resizing * { cursor: nwse-resize !important; }

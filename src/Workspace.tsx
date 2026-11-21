@@ -428,7 +428,7 @@ export function Workspace({
       const id = newId()
       setNotes((prev) => [
         ...prev,
-        { id, title: title || tr('Нова нотатка'), tags: [], x: at.x, y: at.y, width: W, height: H, body: '', updatedAt: Date.now() },
+        { id, title, tags: [], x: at.x, y: at.y, width: W, height: H, body: '', updatedAt: Date.now() },
       ])
       setSelectedId(id)
       setEditing({ id, focus: title ? 'body' : 'title' })
@@ -899,8 +899,8 @@ export function Workspace({
     setSelectedChipId(null)
     setSelectedFrameId(null)
   }
-  /** Paste a copy with fresh ids, centred on the pointer, and select it. */
-  const pasteClip = (clip: BoardClip) => {
+  /** Paste a copy with fresh ids, centred on the pointer (or shifted by `shift`), and select it. */
+  const pasteClip = (clip: BoardClip, shift?: Point) => {
     const boxes = [
       ...clip.notes.map((n) => [n.x, n.y, n.x + n.width, n.y + n.height]),
       ...clip.frames.map((f) => [f.x, f.y, f.x + f.width, f.y + f.height]),
@@ -914,8 +914,8 @@ export function Workspace({
     const cx = (Math.min(...boxes.map((b) => b[0])) + Math.max(...boxes.map((b) => b[2]))) / 2
     const cy = (Math.min(...boxes.map((b) => b[1])) + Math.max(...boxes.map((b) => b[3]))) / 2
     const at = pointerWorld()
-    const dx = Math.round(at.x - cx)
-    const dy = Math.round(at.y - cy)
+    const dx = shift ? shift.x : Math.round(at.x - cx)
+    const dy = shift ? shift.y : Math.round(at.y - cy)
     const map = new Map<string, string>()
     const stamp = Date.now().toString(36)
     let i = 0
@@ -1175,7 +1175,12 @@ export function Workspace({
       }
       if (mod && e.code === 'KeyD') {
         e.preventDefault()
-        if (selectedId && viewMode === 'canvas') duplicateNote(selectedId)
+        if (viewMode !== 'canvas') return
+        // several objects (or a frame / button / drawing): duplicate the whole selection
+        const clip = clipRef.current.collectSelection()
+        const count = clip ? clip.notes.length + clip.frames.length + clip.chips.length + clip.strokes.filter((st) => !st.note).length : 0
+        if (clip && (count > 1 || !clip.notes.length)) clipRef.current.pasteClip(clip, { x: 30, y: 30 })
+        else if (selectedId) duplicateNote(selectedId)
         return
       }
       // Ctrl+C / Ctrl+X: copy / cut the selected notes, buttons, frames and drawings
@@ -1531,6 +1536,7 @@ export function Workspace({
                   onWire={wireChip}
                   onCutWire={cutWire}
                   onContextMenu={(id, x, y) => setChipMenu({ id, x, y })}
+                  onResize={(id, scale) => patchChip(id, { scale })}
                   onDelete={(id) => {
                     setChips((prev) => prev.filter((c) => c.id !== id))
                     setSelectedChipId((s) => (s === id ? null : s))

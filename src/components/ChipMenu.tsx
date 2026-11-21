@@ -1,15 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import type { ChipSize, TagChip } from '../types/note'
+import { CHIP_SCALE_MAX, CHIP_SCALE_MIN, chipScale, type TagChip } from '../types/note'
 import { chipEffect, effectInfo, presetFor, TAG_EFFECTS } from '../effects/tagEffects'
 import { useT } from '../i18n'
 import './NoteMenu.css'
 import './ChipMenu.css'
-
-const SIZES: { id: ChipSize; label: string; hint: string }[] = [
-  { id: 's', label: 'S', hint: 'Мала' },
-  { id: 'm', label: 'M', hint: 'Середня' },
-  { id: 'l', label: 'L', hint: 'Велика' },
-]
 
 export interface ChipMenuActions {
   onPatch: (patch: Partial<TagChip>) => void
@@ -33,7 +27,7 @@ export function ChipMenu({ chip, at, wireCount, onClose, ...a }: Props) {
   const [pos, setPos] = useState(at)
   const preset = presetFor(chip.tag)
   const effect = chipEffect(chip)
-  const size = chip.size ?? 'm'
+  const pct = Math.round(chipScale(chip) * 100)
 
   useLayoutEffect(() => {
     const el = ref.current
@@ -96,20 +90,23 @@ export function ChipMenu({ chip, at, wireCount, onClose, ...a }: Props) {
 
       <div className="note-menu__row">
         <span className="note-menu__label">{tr('Розмір')}</span>
-        <div className="note-menu__seg" role="radiogroup" aria-label={tr('Розмір кнопки')}>
-          {SIZES.map((s) => (
-            <button
-              key={s.id}
-              role="radio"
-              aria-checked={size === s.id}
-              title={tr(s.hint)}
-              className={size === s.id ? 'is-active' : ''}
-              onClick={() => a.onPatch({ size: s.id })}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
+        <input
+          className="note-menu__range"
+          type="range"
+          min={Math.round(CHIP_SCALE_MIN * 100)}
+          max={Math.round(CHIP_SCALE_MAX * 100)}
+          step={5}
+          value={pct}
+          aria-label={tr('Розмір кнопки')}
+          onChange={(e) => a.onPatch({ scale: Number(e.target.value) / 100 })}
+        />
+        <button
+          className="chip-menu__pct"
+          title={tr('Звичайний розмір')}
+          onClick={() => a.onPatch({ scale: 1 })}
+        >
+          {pct}%
+        </button>
       </div>
 
       <div className="note-menu__sep" />
