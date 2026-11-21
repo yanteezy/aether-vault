@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ObjectFx } from '../effects/tagEffects'
+import type { NoteImage } from '../features/images'
+import type { InkStroke } from '../types/note'
 import type { Connection, NoteCardData, Side } from '../types/note'
 import type { CanvasTransform } from '../hooks/useCanvasTransform'
 import { GRID, type GridStyle, type ThemeId } from '../settings/settings'
@@ -27,6 +29,8 @@ interface CanvasBoardProps {
   grid: GridStyle
   onSelect: (id: string | null) => void
   onSelectConnection: (id: string | null) => void
+  /** Remove one link (scissors on the line, or right click on it). */
+  onRemoveConnection?: (id: string) => void
   onMove: (id: string, x: number, y: number) => void
   onToggleChecklist: (noteId: string, itemId: string) => void
   /** Drag from a "+" handle ended on another note. */
@@ -58,6 +62,12 @@ interface CanvasBoardProps {
   extraSelected?: string[]
   /** Size of the whole selection (notes + buttons + frames): above 1 a note drags the group. */
   groupSize?: number
+  /** Drawings attached to notes, per note id (note coordinates). */
+  noteInk?: Map<string, InkStroke[]>
+  /** Note whose photo is being adjusted. */
+  imageEditId?: string | null
+  onImagePatch?: (id: string, patch: Partial<NoteImage>) => void
+  onImageEditEnd?: () => void
   /** Effects of switched-on tag buttons, per note id. */
   noteFx?: Map<string, ObjectFx[]>
   /** World grid period: Ctrl/⌘ while dragging snaps to it. */
@@ -89,6 +99,7 @@ export function CanvasBoard({
   grid,
   onSelect,
   onSelectConnection,
+  onRemoveConnection,
   onMove,
   onToggleChecklist,
   onConnect,
@@ -113,6 +124,10 @@ export function CanvasBoard({
   extraSelectables,
   extraSelected,
   groupSize,
+  noteInk,
+  imageEditId,
+  onImagePatch,
+  onImageEditEnd,
   gridStep = 24,
   radialKeyLabel = '⌥',
 }: CanvasBoardProps) {
@@ -272,6 +287,7 @@ export function CanvasBoard({
 
   const layer = (
     <ConnectionsLayer
+      onRemoveConnection={onRemoveConnection}
       connections={connections}
       notesById={notesById}
       sizes={sizes}
@@ -359,6 +375,10 @@ export function CanvasBoard({
               linkTarget={linkTargetId === note.id}
               tilt={tiltFor(note.id)}
               fx={noteFx?.get(note.id)}
+              ink={noteInk?.get(note.id)}
+              imageEditing={imageEditId === note.id}
+              onImagePatch={onImagePatch}
+              onImageEditEnd={onImageEditEnd}
               onSelect={(id) => {
                 onSelectConnection(null)
                 onSelect(id)

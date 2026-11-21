@@ -1,0 +1,152 @@
+/* Photo and attached drawings sit under the note's text (z-index -1 inside the card's stacking context). */
+.note-photo {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.note-photo img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 50%;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+/* darkening + a soft gradient so text stays readable on any picture */
+.note-photo__dim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, calc(var(--dim) * 1.1)) 0%, rgba(0, 0, 0, var(--dim)) 55%, rgba(0, 0, 0, calc(var(--dim) * 0.8)) 100%);
+}
+.note-photo.is-editing {
+  z-index: 6;
+  pointer-events: auto;
+  cursor: move;
+  outline: 2px dashed var(--accent);
+  outline-offset: -2px;
+}
+.note-photo.is-editing .note-photo__dim { opacity: 0.25; }
+.note-photo__hint {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 6px 6px 10px;
+  border-radius: 9px;
+  background: rgba(20, 20, 26, 0.82);
+  backdrop-filter: blur(10px);
+  color: #fff;
+  font: 500 11.5px var(--font-stack);
+  pointer-events: auto;
+  cursor: default;
+}
+.note-photo__hint button {
+  flex: none;
+  height: 24px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  font: 600 11.5px var(--font-stack);
+  cursor: pointer;
+}
+
+/* attached drawings: in note coordinates, under the text, never clipped */
+.note-ink {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+.note-ink .ink-layer { z-index: auto; }
+
+/* a note with a photo: light text with a shadow, whatever the theme */
+.canvas-board__world .note-card.has-photo:not(.is-photo-only) :is(.note-card__title, .note-card__body, .note-card__bullets, .note-card__checklist-item label) {
+  color: #fff !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+/* a photo without any text: the picture is the note */
+.canvas-board__world .note-card.is-photo-only .note-card__header { display: none; }
+.canvas-board__world .note-card.has-photo { background-color: rgba(0, 0, 0, 0.35); }
+
+/* ---------- link card ---------- */
+.link-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: -2px;
+}
+.link-card__service {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font: 600 12px var(--font-stack);
+  color: var(--text-secondary);
+}
+.link-card__badge {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  font: 800 12px/1 var(--font-stack);
+  color: #fff;
+  background: var(--svc);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--svc) 45%, transparent);
+}
+.link-card__badge.is-light { color: #111; }
+.link-card__domain { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-tertiary); font-weight: 500; }
+.link-card__thumb {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--svc) 40%, #111), #111);
+}
+.link-card__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.link-card__play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 46px;
+  height: 32px;
+  translate: -50% -50%;
+  border-radius: 9px;
+  background: rgba(255, 0, 51, 0.92);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 14px;
+  pointer-events: none;
+}
+.link-card__open {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--svc) 55%, transparent);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--svc) 18%, transparent);
+  color: var(--text-primary);
+  font: 600 12px var(--font-stack);
+  cursor: pointer;
+}
+.link-card__open:hover { background: color-mix(in srgb, var(--svc) 30%, transparent); }
+.note-link { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; word-break: break-all; }
+body[data-theme='detective'] .note-link { color: #1d4ed8; }

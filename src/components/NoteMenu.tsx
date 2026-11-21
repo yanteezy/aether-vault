@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { autoScale, resolveFontSize, type NoteCardData, type NoteColor, type NoteStyle, type TitleAlign } from '../types/note'
 import { FontSizeControl } from './FontSizePicker'
 import { NoteFontPicker } from './FontPicker'
+import type { NoteImage } from '../features/images'
 import { useT } from '../i18n'
 import './NoteMenu.css'
 
@@ -45,6 +46,15 @@ export interface NoteMenuActions {
   onOpenInList: () => void
   onUnlink: () => void
   onDelete: () => void
+  /** Photo: open a file dialog / adjust / change / remove. */
+  onPickImage: () => void
+  onEditImage: () => void
+  onImagePatch: (patch: Partial<NoteImage>) => void
+  onRemoveImage: () => void
+  /** Drawings attached to the note. */
+  inkCount: number
+  onDetachInk: () => void
+  onDeleteInk: () => void
 }
 
 interface Props extends NoteMenuActions {
@@ -72,7 +82,9 @@ export function NoteMenu({ note, at, linkCount, onClose, baseFontPx, autoTextDef
   useLayoutEffect(() => {
     const el = ref.current
     if (!el) return
-    const r = el.getBoundingClientRect()
+    // layout size, not getBoundingClientRect(): the opening animation scales the menu down,
+    // which made it look shorter than it is and pushed its bottom out of the window
+    const r = { width: el.offsetWidth, height: el.offsetHeight }
     const pad = 8
     let x = at.x
     let y = at.y
@@ -193,6 +205,65 @@ export function NoteMenu({ note, at, linkCount, onClose, baseFontPx, autoTextDef
         <span className="note-menu__label">{tr('Шрифт')}</span>
         <NoteFontPicker withDefault value={note.font} onChange={(font) => a.onPatch({ font })} />
       </div>
+
+      <div className="note-menu__sep" />
+      {note.image ? (
+        <>
+          <div className="note-menu__row">
+            <span className="note-menu__label">{tr('Фото')}</span>
+            <div className="note-menu__seg" role="radiogroup" aria-label={tr('Як показати фото')}>
+              {(['cover', 'contain'] as const).map((f) => (
+                <button
+                  key={f}
+                  role="radio"
+                  aria-checked={(note.image!.fit ?? 'cover') === f}
+                  className={(note.image!.fit ?? 'cover') === f ? 'is-active' : ''}
+                  onClick={() => a.onImagePatch({ fit: f })}
+                >
+                  {f === 'cover' ? tr('Заповнити') : tr('Вмістити')}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="note-menu__row">
+            <span className="note-menu__label">{tr('Затемнення')}</span>
+            <input
+              className="note-menu__range"
+              type="range"
+              min={0}
+              max={80}
+              step={5}
+              value={Math.round((note.image.dim ?? 0) * 100)}
+              aria-label={tr('Затемнення')}
+              onChange={(e) => a.onImagePatch({ dim: Number(e.target.value) / 100 })}
+            />
+          </div>
+          <button className="note-menu__item" role="menuitem" onClick={run(a.onEditImage)}>
+            <span>{tr('Посунути й масштабувати фото')}</span>
+          </button>
+          <button className="note-menu__item" role="menuitem" onClick={run(a.onPickImage)}>
+            <span>{tr('Замінити фото…')}</span>
+          </button>
+          <button className="note-menu__item" role="menuitem" onClick={run(a.onRemoveImage)}>
+            <span>{tr('Прибрати фото')}</span>
+          </button>
+        </>
+      ) : (
+        <button className="note-menu__item" role="menuitem" onClick={run(a.onPickImage)}>
+          <span>{tr('Додати фото…')}</span>
+        </button>
+      )}
+      {a.inkCount > 0 && (
+        <>
+          <button className="note-menu__item" role="menuitem" onClick={run(a.onDetachInk)}>
+            <span>{tr('Відв’язати малюнок від нотатки')}</span>
+            <span className="note-menu__count">{a.inkCount}</span>
+          </button>
+          <button className="note-menu__item" role="menuitem" onClick={run(a.onDeleteInk)}>
+            <span>{tr('Стерти малюнок на нотатці')}</span>
+          </button>
+        </>
+      )}
 
       <div className="note-menu__row">
         <span className="note-menu__label">{tr('Розмір')}</span>

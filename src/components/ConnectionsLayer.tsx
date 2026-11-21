@@ -1,5 +1,6 @@
 import type { Connection, NoteCardData, Side } from '../types/note'
-import { anchorPoint, bezier, pinPoint, sagString, type Point, type Size } from './geometry'
+import { anchorPoint, bezier, bezierMid, pinPoint, sagMid, sagString, type Point, type Size } from './geometry'
+import { useT } from '../i18n'
 
 export interface PendingLink {
   fromId: string
@@ -16,6 +17,8 @@ interface ConnectionsLayerProps {
   selectedConnectionId: string | null
   pending: PendingLink | null
   onSelectConnection: (id: string) => void
+  /** Scissors in the middle of a link / right click on it: remove that one link. */
+  onRemoveConnection?: (id: string) => void
   /** Detective theme: strings between pins instead of side beziers. */
   strings?: boolean
 }
@@ -28,8 +31,10 @@ export function ConnectionsLayer({
   selectedConnectionId,
   pending,
   onSelectConnection,
+  onRemoveConnection,
   strings = false,
 }: ConnectionsLayerProps) {
+  const tr = useT()
   const pendingFrom = pending ? notesById.get(pending.fromId) : undefined
   return (
     <svg className={`connections-layer${emphasized ? ' is-emphasized' : ''}`}>
@@ -42,6 +47,7 @@ export function ConnectionsLayer({
         const a = strings ? pinPoint(from, sizes.get(from.id)) : anchorPoint(from, sizes.get(from.id), fs)
         const b = strings ? pinPoint(to, sizes.get(to.id)) : anchorPoint(to, sizes.get(to.id), ts)
         const d = strings ? sagString(a, b) : bezier(a, fs, b, ts)
+        const mid = strings ? sagMid(a, b) : bezierMid(a, fs, b, ts)
         const selected = selectedConnectionId === conn.id
         return (
           <g key={conn.id} className={`connection${selected ? ' is-selected' : ''}`}>
@@ -53,11 +59,34 @@ export function ConnectionsLayer({
               fill="none"
               onPointerDown={(e) => {
                 e.stopPropagation()
-                onSelectConnection(conn.id)
+                if (e.button === 0) onSelectConnection(conn.id)
+              }}
+              onContextMenu={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                onRemoveConnection?.(conn.id)
               }}
             />
             {!strings && <circle cx={a.x} cy={a.y} r={3.5} className="connection-dot" />}
             {!strings && <circle cx={b.x} cy={b.y} r={3.5} className="connection-dot" />}
+            {onRemoveConnection && (
+              <g
+                className="connection__cut"
+                transform={`translate(${mid.x} ${mid.y})`}
+                onPointerDown={(e) => {
+                  e.stopPropagation()
+                  e.preventDefault()
+                }}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onRemoveConnection(conn.id)
+                }}
+              >
+                <title>{tr('Від’єднати')}</title>
+                <circle r={10} />
+                <path d="M-3.5 -3.5 3.5 3.5M3.5 -3.5 -3.5 3.5" />
+              </g>
+            )}
           </g>
         )
       })}

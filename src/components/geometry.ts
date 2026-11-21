@@ -86,3 +86,21 @@ export function sagString(a: Point, b: Point) {
   const cy = Math.max(a.y, b.y) + sag
   return `M ${a.x} ${a.y} Q ${cx} ${cy}, ${b.x} ${b.y}`
 }
+
+/** Point in the middle of a `bezier()` curve (where the «unlink» scissors sit). */
+export function bezierMid(a: Point, sa: Side, b: Point, sb?: Side): Point {
+  const dist = Math.hypot(b.x - a.x, b.y - a.y)
+  const k = Math.max(50, dist * 0.4)
+  const n1 = NORMAL[sa]
+  const c1 = { x: a.x + n1.x * k, y: a.y + n1.y * k }
+  const n2 = sb ? NORMAL[sb] : { x: -n1.x * 0.3, y: -n1.y * 0.3 }
+  const c2 = { x: b.x + n2.x * k, y: b.y + n2.y * k }
+  return { x: (a.x + 3 * c1.x + 3 * c2.x + b.x) / 8, y: (a.y + 3 * c1.y + 3 * c2.y + b.y) / 8 }
+}
+
+/** Point in the middle of a `sagString()` (detective theme). */
+export function sagMid(a: Point, b: Point): Point {
+  const dist = Math.hypot(b.x - a.x, b.y - a.y)
+  const c = { x: (a.x + b.x) / 2, y: Math.max(a.y, b.y) + Math.min(90, 12 + dist * 0.12) }
+  return { x: (a.x + 2 * c.x + b.x) / 4, y: (a.y + 2 * c.y + b.y) / 4 }
+}

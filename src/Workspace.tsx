@@ -8,7 +8,7 @@ import { RadialMenu, radialIndex, type RadialItem } from './components/RadialMen
 import { NotesList } from './components/NotesList'
 import { NoteMenu } from './components/NoteMenu'
 import { OPPOSITE, type Point } from './components/geometry'
-import { THEMES, isRadialKey, keyGlyph, type AppSettings } from './settings/settings'
+import { THEMES, isRadialKey, keyGlyph, type AppSettings, type ThemeId } from './settings/settings'
 import { useCanvasTransform } from './hooks/useCanvasTransform'
 import { usePersistentState } from './hooks/usePersistentState'
 import { DEFAULT_VAULT_ID, vaultKey } from './hooks/vaultKeys'
@@ -23,14 +23,30 @@ import { FrameLayer } from './components/Frames'
 import { FrameMenu } from './components/FrameMenu'
 import { ChipMenu } from './components/ChipMenu'
 import { chipEffect, type ObjectFx } from './effects/tagEffects'
+import { importImage, isImageFile, type NoteImage } from './features/images'
+import { describeLink, parseUrl } from './features/links'
 import { CHIP_COLORS } from './types/note'
 import { RadialIcon } from './components/RadialIcons'
 
 let noteCounter = 1
 const newId = () => `note-${Date.now()}-${++noteCounter}`
 const W = 260
-type GroupSel = { chips: string[]; frames: string[] }
-const NO_GROUP: GroupSel = { chips: [], frames: [] }
+type GroupSel = { chips: string[]; frames: string[]; strokes: string[] }
+const NO_GROUP: GroupSel = { chips: [], frames: [], strokes: [] }
+const groupLen = (g: GroupSel) => g.chips.length + g.frames.length + g.strokes.length
+let strokeSeq = 0
+const newStrokeId = () => `ink-${Date.now().toString(36)}-${(++strokeSeq).toString(36)}`
+
+/** Copied / cut objects — module level, so they can be pasted into another workspace tab too. */
+type BoardClip = {
+  notes: NoteCardData[]
+  connections: Connection[]
+  chips: TagChip[]
+  frames: Frame[]
+  strokes: InkStroke[]
+  text: string
+}
+let boardClip: BoardClip | null = null
 const H = 160
 
 /** View transform that fits a world rect between the top bar and the dock. */
@@ -66,6 +82,8 @@ interface WorkspaceProps {
   /** Switch to the neighbouring vault tab: 1 = right, -1 = left. */
   onSwitchTab?: (dir: 1 | -1) => void
   tabCount?: number
+  /** Change the theme where it is set: this workspace's own theme, or the global one. */
+  onSetTheme?: (theme: ThemeId) => void
 }
 
 /** Everything that belongs to one vault. Re-mounted (key) when the vault changes. */
@@ -82,6 +100,7 @@ export function Workspace({
   onZoomChange,
   onSwitchTab,
   tabCount = 1,
+  onSetTheme,
 }: WorkspaceProps) {
   const tr = useT()
   const isFirst = vault.id === DEFAULT_VAULT_ID
@@ -104,18 +123,18 @@ export function Workspace({
   const groupSelRef = useRef(groupSel)
   groupSelRef.current = groupSel
   /** Which ids are buttons / frames — filled in below, once frames are known. */
-  const kindRef = useRef<{ chips: Set<string>; frames: Set<string> }>({ chips: new Set(), frames: new Set() })
+  const kindRef = useRef<{ chips: Set<string>; frames: Set<string>; strokes: Set<string> }>({ chips: new Set(), frames: new Set(), strokes: new Set() })
   /** Plain single selection: also drops any multi-selection. */
   const setSelectedId = useCallback((v: string | null | ((s: string | null) => string | null)) => {
     setMultiIds((m) => (m.length ? [] : m))
-    setGroupSel((g) => (g.chips.length || g.frames.length ? NO_GROUP : g))
+    setGroupSel((g) => (groupLen(g) ? NO_GROUP : g))
     setPrimaryId(v)
   }, [])
   const selectedIds = useMemo(
     () => new Set(multiIds.length ? multiIds : selectedId ? [selectedId] : []),
     [multiIds, selectedId],
   )
-  const groupSize = selectedIds.size + groupSel.chips.length + groupSel.frames.length
+  const groupSize = selectedIds.size + groupLen(groupSel)
   const selectedIdsRef = useRef(selectedIds)
   selectedIdsRef.current = selectedIds
   /** Replace the whole selection (box select, Ctrl+A): notes, buttons and frames. */
@@ -123,7 +142,8 @@ export function Workspace({
     const k = kindRef.current
     const chipIds = ids.filter((id) => k.chips.has(id))
     const frameIds = ids.filter((id) => k.frames.has(id))
-    const noteIds = ids.filter((id) => !k.chips.has(id) && !k.frames.has(id))
+    const strokeIds = ids.filter((id) => k.strokes.has(id))
+    const noteIds = ids.filter((id) => !k.chips.has(id) && !k.frames.has(id) && !k.strokes.has(id))
     const total = ids.length
     setSelectedConnectionId(null)
     // a single button / frame is an ordinary single selection
@@ -139,7 +159,7 @@ export function Workspace({
     }
     setMultiIds(noteIds.length > 1 || total > 1 ? noteIds : [])
     setPrimaryId(noteIds.length ? noteIds[noteIds.length - 1] : null)
-    setGroupSel(chipIds.length || frameIds.length ? { chips: chipIds, frames: frameIds } : NO_GROUP)
+    setGroupSel(chipIds.length || frameIds.length || strokeIds.length ? { chips: chipIds, frames: frameIds, strokes: strokeIds } : NO_GROUP)
     setSelectedFrameId(null)
     setSelectedChipId(null)
   }, [])
@@ -147,7 +167,7 @@ export function Workspace({
   const toggleSelect = useCallback(
     (id: string) => {
       const g = groupSelRef.current
-      const cur = [...selectedIdsRef.current, ...g.chips, ...g.frames]
+      const cur = [...selectedIdsRef.current, ...g.chips, ...g.frames, ...g.strokes]
       selectMany(cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id])
     },
     [selectMany],
@@ -172,7 +192,7 @@ export function Workspace({
     color: 'chalk',
   })
   const [drawing, setDrawing] = useState(false)
-  kindRef.current = { chips: new Set(chips.map((c) => c.id)), frames: new Set(frames.map((f) => f.id)) }
+  kindRef.current = { chips: new Set(chips.map((c) => c.id)), frames: new Set(frames.map((f) => f.id)), strokes: new Set(strokes.filter((st) => !st.note).map((st) => st.id)) }
   const chipsRef = useRef(chips)
   chipsRef.current = chips
 
@@ -214,41 +234,42 @@ export function Workspace({
   // ---------- ink ----------
   const strokesRef = useRef(strokes)
   strokesRef.current = strokes
-  const inkHistory = useRef<InkStroke[][]>([])
-  const [historyLen, setHistoryLen] = useState(0)
-  const pushInkHistory = useCallback((snap: InkStroke[]) => {
-    inkHistory.current.push(snap)
-    if (inkHistory.current.length > 50) inkHistory.current.shift()
-    setHistoryLen(inkHistory.current.length)
-  }, [])
-  const undoInk = useCallback(() => {
-    const prev = inkHistory.current.pop()
-    setHistoryLen(inkHistory.current.length)
-    if (prev) setStrokes(prev)
-  }, [setStrokes])
-  const eraseSnap = useRef<InkStroke[] | null>(null)
+  // (undo for drawings is the board-wide undo / redo below)
+  /** Real on-screen height of a note (text can make it taller than its stored height). */
+  const noteH = (n: NoteCardData) =>
+    (document.querySelector<HTMLElement>(`[data-note-id="${CSS.escape(n.id)}"]`)?.offsetHeight ?? n.height)
   const addStroke = useCallback(
     (st: InkStroke) => {
-      pushInkHistory(strokesRef.current)
-      setStrokes((prev) => [...prev, st])
+      // drawn on top of a note → it becomes part of that note's background and travels with it
+      const b = strokeBounds(st)
+      const cx = (b.minX + b.maxX) / 2
+      const cy = (b.minY + b.maxY) / 2
+      const host = [...notesRef.current].reverse().find((n) => cx >= n.x && cx <= n.x + n.width && cy >= n.y && cy <= n.y + noteH(n))
+      setStrokes((prev) => [...prev, host ? { ...st, note: host.id, x: st.x - host.x, y: st.y - host.y } : st])
     },
-    [pushInkHistory, setStrokes],
+    [setStrokes],
   )
   const eraseStrokes = useCallback(
     (changes: Map<string, InkStroke[]>) => {
-      if (eraseSnap.current) {
-        pushInkHistory(eraseSnap.current)
-        eraseSnap.current = null
-      }
-      setStrokes((prev) => prev.flatMap((st) => changes.get(st.id) ?? [st]))
+      // the eraser works on board coordinates; attached pieces go back to their note's coordinates
+      const byId = new Map(notesRef.current.map((n) => [n.id, n]))
+      setStrokes((prev) =>
+        prev.flatMap((st) => {
+          const left = changes.get(st.id)
+          if (!left) return [st]
+          return left.map((p) => {
+            const n = p.note ? byId.get(p.note) : undefined
+            return n ? { ...p, x: p.x - n.x, y: p.y - n.y } : p
+          })
+        }),
+      )
     },
-    [pushInkHistory, setStrokes],
+    [setStrokes],
   )
   const clearInk = useCallback(() => {
     if (!strokesRef.current.length) return
-    pushInkHistory(strokesRef.current)
     setStrokes([])
-  }, [pushInkHistory, setStrokes])
+  }, [setStrokes])
 
   // ---------- smart frames ----------
   const selectFrame = useCallback((id: string | null) => {
@@ -286,6 +307,7 @@ export function Workspace({
       for (const n of notes) if (!n.locked && inside(n.x + n.width / 2, n.y + n.height / 2)) ns.set(n.id, { x: n.x, y: n.y })
       const ss = new Map<string, Point>()
       for (const st of strokesRef.current) {
+        if (st.note) continue // attached drawings travel with their note
         const b = strokeBounds(st)
         if (inside((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2)) ss.set(st.id, { x: st.x, y: st.y })
       }
@@ -293,11 +315,6 @@ export function Workspace({
       const fs = new Map<string, Point>()
       for (const o of frames)
         if (o.id !== id && !o.locked && inside(o.x, o.y) && inside(o.x + o.width, o.y + o.height)) fs.set(o.id, { x: o.x, y: o.y })
-      if (ss.size) {
-        // stroke positions change: earlier ink undo steps would teleport them back
-        inkHistory.current = []
-        setHistoryLen(0)
-      }
       frameDrag.current = { frame: f, notes: ns, strokes: ss, frames: fs }
     },
     [frames, notes],
@@ -432,6 +449,7 @@ export function Workspace({
     (id: string) => {
       setNotes((prev) => prev.filter((n) => n.id !== id))
       setConnections((prev) => prev.filter((c) => c.from !== id && c.to !== id))
+      setStrokes((prev) => (prev.some((st) => st.note === id) ? prev.filter((st) => st.note !== id) : prev))
       setPrimaryId((s) => (s === id ? null : s))
       setMultiIds((m) => (m.includes(id) ? m.filter((x) => x !== id) : m))
     },
@@ -441,8 +459,9 @@ export function Workspace({
   const deleteSelected = useCallback(() => {
     const ids = selectedIdsRef.current
     const g = groupSelRef.current
-    if (!ids.size && !g.chips.length && !g.frames.length) return
+    if (!ids.size && !groupLen(g)) return
     setNotes((prev) => prev.filter((n) => !ids.has(n.id)))
+    setStrokes((prev) => prev.filter((st) => !(st.note && ids.has(st.note)) && !g.strokes.includes(st.id)))
     setConnections((prev) => prev.filter((c) => !ids.has(c.from) && !ids.has(c.to)))
     if (g.chips.length) setChips((prev) => prev.filter((c) => !g.chips.includes(c.id)))
     if (g.frames.length) setFrames((prev) => prev.filter((f) => !g.frames.includes(f.id)))
@@ -450,7 +469,7 @@ export function Workspace({
     setMultiIds([])
     setGroupSel(NO_GROUP)
   },
-    [setNotes, setConnections, setChips, setFrames],
+    [setNotes, setConnections, setChips, setFrames, setStrokes],
   )
 
   const duplicateNote = useCallback(
@@ -466,9 +485,10 @@ export function Workspace({
         updatedAt: Date.now(),
       }
       setNotes((prev) => [...prev, copy])
+      setStrokes((prev) => [...prev, ...prev.filter((st) => st.note === id).map((st) => ({ ...st, id: newStrokeId(), note: copy.id }))])
       setSelectedId(copy.id)
     },
-    [notes, setNotes],
+    [notes, setNotes, setStrokes],
   )
 
   const reorderNote = useCallback(
@@ -542,8 +562,8 @@ export function Workspace({
   /** Is this note / button / frame part of a selection of 2+ objects? */
   const isGrouped = (id: string) => {
     const g = groupSelRef.current
-    const size = selectedIdsRef.current.size + g.chips.length + g.frames.length
-    return size > 1 && (selectedIdsRef.current.has(id) || g.chips.includes(id) || g.frames.includes(id))
+    const size = selectedIdsRef.current.size + groupLen(g)
+    return size > 1 && (selectedIdsRef.current.has(id) || g.chips.includes(id) || g.frames.includes(id) || g.strokes.includes(id))
   }
   const isGroupedRef = useRef(isGrouped)
   isGroupedRef.current = isGrouped
@@ -571,17 +591,14 @@ export function Workspace({
         framesM.set(f.id, { x: f.x, y: f.y })
     const strokesM = new Map<string, Point>()
     for (const st of strokesRef.current) {
+      if (st.note) continue // attached drawings travel with their note
       const b = strokeBounds(st)
-      if (inSelFrame((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2)) strokesM.set(st.id, { x: st.x, y: st.y })
-    }
-    if (strokesM.size) {
-      inkHistory.current = []
-      setHistoryLen(0)
+      if (g.strokes.includes(st.id) || inSelFrame((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2)) strokesM.set(st.id, { x: st.x, y: st.y })
     }
     const chipsM = new Map<string, Point>()
     for (const c of chipsRef.current) if (g.chips.includes(c.id)) chipsM.set(c.id, { x: c.x, y: c.y })
     const origin =
-      notesM.get(lead) ?? chipsM.get(lead) ?? framesM.get(lead) ?? { x: 0, y: 0 }
+      notesM.get(lead) ?? chipsM.get(lead) ?? framesM.get(lead) ?? strokesM.get(lead) ?? { x: 0, y: 0 }
     groupDrag.current = { lead, origin, notes: notesM, chips: chipsM, frames: framesM, strokes: strokesM }
     const reset = () => {
       groupDrag.current = null
@@ -612,6 +629,330 @@ export function Workspace({
   }
   const groupMoveToRef = useRef(groupMoveTo)
   groupMoveToRef.current = groupMoveTo
+
+  // ---------- undo / redo: snapshots of the whole board ----------
+  // Every action is one step. Changes are merged into the current step only while a pointer is
+  // held (dragging, resizing, erasing) or while you keep typing in a note — so one drag or one
+  // burst of typing undoes in one go, but Delete right after Ctrl+D stays two separate steps.
+  type Snap = { notes: NoteCardData[]; connections: Connection[]; chips: TagChip[]; frames: Frame[]; strokes: InkStroke[] }
+  const liveSnap: Snap = { notes, connections, chips, frames, strokes }
+  const liveSnapRef = useRef(liveSnap)
+  liveSnapRef.current = liveSnap
+  const history = useRef<{ past: Snap[]; future: Snap[] }>({ past: [], future: [] })
+  /** Board state after the previous change (= «before» of the next one). */
+  const prevSnap = useRef<Snap>(liveSnap)
+  const burst = useRef<number | null>(null)
+  const restoring = useRef(false)
+  const pointerHeld = useRef(false)
+  /** When the pointer was released: a drag's last frame can land a moment after pointerup. */
+  const pointerUpAt = useRef(0)
+  /** A new press of a pointer or a key (outside text fields) always starts a new undo step. */
+  const newAction = useRef(false)
+  const [, setHistoryTick] = useState(0)
+  useEffect(() => {
+    const down = () => {
+      pointerHeld.current = true
+      newAction.current = true
+    }
+    const up = () => {
+      pointerHeld.current = false
+      pointerUpAt.current = performance.now()
+    }
+    const key = (e: KeyboardEvent) => {
+      if (!isTyping(e.target) && !['Control', 'Meta', 'Shift', 'Alt'].includes(e.key)) newAction.current = true
+    }
+    window.addEventListener('pointerdown', down, true)
+    window.addEventListener('pointerup', up, true)
+    window.addEventListener('pointercancel', up, true)
+    window.addEventListener('keydown', key, true)
+    return () => {
+      window.removeEventListener('keydown', key, true)
+      window.removeEventListener('pointerdown', down, true)
+      window.removeEventListener('pointerup', up, true)
+      window.removeEventListener('pointercancel', up, true)
+    }
+  }, [])
+  const sameSnap = (a: Snap, b: Snap) =>
+    a.notes === b.notes && a.connections === b.connections && a.chips === b.chips && a.frames === b.frames && a.strokes === b.strokes
+  useEffect(() => {
+    const now = liveSnapRef.current
+    if (restoring.current) {
+      restoring.current = false
+      prevSnap.current = now
+      return
+    }
+    if (sameSnap(prevSnap.current, now)) return
+    const merging =
+      !newAction.current &&
+      burst.current !== null &&
+      (pointerHeld.current || performance.now() - pointerUpAt.current < 250 || isTyping(document.activeElement))
+    newAction.current = false
+    if (burst.current !== null) window.clearTimeout(burst.current)
+    if (!merging) {
+      const h = history.current
+      h.past.push(prevSnap.current)
+      if (h.past.length > 100) h.past.shift()
+      h.future = []
+      setHistoryTick((t) => t + 1)
+    }
+    burst.current = window.setTimeout(() => {
+      burst.current = null
+    }, 700)
+    prevSnap.current = now
+  }, [notes, connections, chips, frames, strokes])
+  const applySnap = (snap: Snap) => {
+    if (burst.current !== null) window.clearTimeout(burst.current)
+    burst.current = null
+    restoring.current = true
+    setNotes(snap.notes)
+    setConnections(snap.connections)
+    setChips(snap.chips)
+    setFrames(snap.frames)
+    setStrokes(snap.strokes)
+    setHistoryTick((t) => t + 1)
+  }
+  const undo = () => {
+    const h = history.current
+    const prev = h.past.pop()
+    if (!prev) return
+    h.future.push(liveSnapRef.current)
+    applySnap(prev)
+  }
+  const redo = () => {
+    const h = history.current
+    const next = h.future.pop()
+    if (!next) return
+    h.past.push(liveSnapRef.current)
+    applySnap(next)
+  }
+  const undoRef = useRef(undo)
+  undoRef.current = undo
+  const redoRef = useRef(redo)
+  redoRef.current = redo
+  const canUndo = history.current.past.length > 0
+
+
+  // ---------- drawings: free ones on the board, attached ones inside their notes ----------
+  const freeStrokes = useMemo(() => strokes.filter((st) => !st.note), [strokes])
+  const noteInk = useMemo(() => {
+    const m = new Map<string, InkStroke[]>()
+    for (const st of strokes) if (st.note) m.set(st.note, [...(m.get(st.note) ?? []), st])
+    return m
+  }, [strokes])
+  /** Every stroke in board coordinates (what the eraser and «fit all» work with). */
+  const boardStrokes = useMemo(() => {
+    const byId = new Map(notes.map((n) => [n.id, n]))
+    return strokes.flatMap((st) => {
+      if (!st.note) return [st]
+      const n = byId.get(st.note)
+      return n ? [{ ...st, x: st.x + n.x, y: st.y + n.y }] : []
+    })
+  }, [strokes, notes])
+
+  /** Press on a free drawing: select it (Ctrl/⌘ adds), drag moves it — or the whole selection. */
+  const onStrokeDown = (id: string, e: React.PointerEvent) => {
+    if (e.button !== 0) return
+    e.stopPropagation()
+    e.preventDefault()
+    if (e.ctrlKey || e.metaKey) return toggleSelect(id)
+    if (!isGroupedRef.current(id) && !groupSelRef.current.strokes.includes(id)) selectMany([id])
+    const sx = e.clientX
+    const sy = e.clientY
+    const k = transform.scale
+    const st0 = strokesRef.current.find((st) => st.id === id)
+    if (!st0) return
+    let moved = false
+    const move = (ev: PointerEvent) => {
+      const dx = Math.round((ev.clientX - sx) / k)
+      const dy = Math.round((ev.clientY - sy) / k)
+      if (!moved && Math.hypot(dx, dy) < 3) return
+      moved = true
+      if (isGroupedRef.current(id)) groupMoveByRef.current(id, dx, dy)
+      else setStrokes((prev) => prev.map((st) => (st.id === id ? { ...st, x: st0.x + dx, y: st0.y + dy } : st)))
+    }
+    const up = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', up)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', up)
+  }
+
+  // ---------- photos ----------
+  const [imageEditId, setImageEditId] = useState<string | null>(null)
+  const patchNoteImage = useCallback(
+    (id: string, patch: Partial<NoteImage>) =>
+      setNotes((prev) => prev.map((n) => (n.id === id && n.image ? { ...n, image: { ...n.image, ...patch } } : n))),
+    [setNotes],
+  )
+  /** Photo → background of an existing note. */
+  const attachImage = async (noteId: string, file: Blob) => {
+    try {
+      const img = await importImage(file)
+      setNotes((prev) =>
+        prev.map((n) =>
+          n.id === noteId
+            ? { ...n, image: { id: img.id, w: img.w, h: img.h, fit: 'cover', dim: n.title || n.body ? 0.35 : 0 }, updatedAt: Date.now() }
+            : n,
+        ),
+      )
+    } catch {
+      /* not a readable picture */
+    }
+  }
+  /** Photo → a new picture note sized to its proportions, centred on a board point. */
+  const createImageNote = async (file: Blob, at: Point) => {
+    try {
+      const img = await importImage(file)
+      const width = 320
+      const height = Math.round(Math.max(120, Math.min(640, (width * img.h) / img.w)))
+      const id = newId()
+      setNotes((prev) => [
+        ...prev,
+        { id, title: '', tags: [], x: Math.round(at.x - width / 2), y: Math.round(at.y - height / 2), width, height, body: '', image: { id: img.id, w: img.w, h: img.h, fit: 'cover', dim: 0 }, updatedAt: Date.now() },
+      ])
+      setSelectedId(id)
+    } catch {
+      /* not a readable picture */
+    }
+  }
+  /** Note menu → «Add photo…»: a file dialog that outlives the menu. */
+  const pickImage = (noteId: string) => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.onchange = () => {
+      const f = input.files?.[0]
+      if (f) void attachImage(noteId, f)
+    }
+    input.click()
+  }
+  const viewCenter = () => toWorld({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+  const pointerWorld = () => {
+    const m = mouse.current
+    const overBoard = m.y > 60 && m.y < window.innerHeight - 110
+    return overBoard ? toWorld(m) : viewCenter()
+  }
+
+  // ---------- links ----------
+  const createLinkNote = (u: URL, at: Point) => {
+    const { link, title } = describeLink(u)
+    const width = link.thumb ? 300 : 280
+    const height = link.thumb ? 290 : 150
+    const id = newId()
+    setNotes((prev) => [
+      ...prev,
+      { id, title, tags: [], x: Math.round(at.x - width / 2), y: Math.round(at.y - 40), width, height, body: '', link, updatedAt: Date.now() },
+    ])
+    setSelectedId(id)
+  }
+  /** Plain text pasted on the board: first line → title, the rest → text. */
+  const createTextNote = (text: string, at: Point) => {
+    const lines = text.replace(/\r/g, '').split('\n')
+    const title = lines[0].trim().slice(0, 120)
+    const body = lines.slice(1).join('\n').trim()
+    const id = newId()
+    setNotes((prev) => [...prev, { id, title, tags: [], x: Math.round(at.x - W / 2), y: Math.round(at.y - 40), width: W, height: H, body, updatedAt: Date.now() }])
+    setSelectedId(id)
+  }
+
+  // ---------- cut / copy / paste of board objects ----------
+  /** What is selected right now (single or multi), with what belongs to it. */
+  const collectSelection = (): BoardClip | null => {
+    const g = groupSelRef.current
+    const noteIds = new Set(selectedIdsRef.current)
+    const frameIds = new Set([...g.frames, ...(selectedFrameId ? [selectedFrameId] : [])])
+    const chipIds = new Set([...g.chips, ...(selectedChipId ? [selectedChipId] : [])])
+    const strokeIds = new Set(g.strokes)
+    const fs = framesRef.current.filter((f) => frameIds.has(f.id))
+    // a copied frame takes its contents along, like when it is dragged
+    for (const n of notesRef.current)
+      if (fs.some((f) => n.x + n.width / 2 >= f.x && n.x + n.width / 2 <= f.x + f.width && n.y + n.height / 2 >= f.y && n.y + n.height / 2 <= f.y + f.height)) noteIds.add(n.id)
+    const clipNotes = notesRef.current.filter((n) => noteIds.has(n.id))
+    const clipChips = chipsRef.current.filter((c) => chipIds.has(c.id))
+    const clipStrokes = strokesRef.current.filter((st) => strokeIds.has(st.id) || (st.note && noteIds.has(st.note)))
+    if (!clipNotes.length && !fs.length && !clipChips.length && !clipStrokes.length) return null
+    const text = clipNotes
+      .map((n) => [n.title, n.link?.url, n.body].filter(Boolean).join('\n'))
+      .filter(Boolean)
+      .join('\n\n')
+    return {
+      notes: structuredClone(clipNotes),
+      connections: connections.filter((c) => noteIds.has(c.from) && noteIds.has(c.to)),
+      chips: structuredClone(clipChips),
+      frames: structuredClone(fs),
+      strokes: structuredClone(clipStrokes),
+      text: text || `Aether · ${clipNotes.length + fs.length + clipChips.length + clipStrokes.length}`,
+    }
+  }
+  /** Remove the copied objects from the board (the «cut» half of Ctrl+X). */
+  const removeObjects = (clip: BoardClip) => {
+    const ids = new Set([...clip.notes, ...clip.chips, ...clip.frames, ...clip.strokes].map((o) => o.id))
+    setNotes((prev) => prev.filter((n) => !ids.has(n.id)))
+    setConnections((prev) => prev.filter((c) => !ids.has(c.from) && !ids.has(c.to)))
+    setChips((prev) => prev.filter((c) => !ids.has(c.id)))
+    setFrames((prev) => prev.filter((f) => !ids.has(f.id)))
+    setStrokes((prev) => prev.filter((st) => !ids.has(st.id) && !(st.note && ids.has(st.note))))
+    setSelectedId(null)
+    setSelectedChipId(null)
+    setSelectedFrameId(null)
+  }
+  /** Paste a copy with fresh ids, centred on the pointer, and select it. */
+  const pasteClip = (clip: BoardClip) => {
+    const boxes = [
+      ...clip.notes.map((n) => [n.x, n.y, n.x + n.width, n.y + n.height]),
+      ...clip.frames.map((f) => [f.x, f.y, f.x + f.width, f.y + f.height]),
+      ...clip.chips.map((c) => [c.x, c.y, c.x + 120, c.y + 32]),
+      ...clip.strokes.filter((st) => !st.note).map((st) => {
+        const b = strokeBounds(st)
+        return [b.minX, b.minY, b.maxX, b.maxY]
+      }),
+    ]
+    if (!boxes.length) return
+    const cx = (Math.min(...boxes.map((b) => b[0])) + Math.max(...boxes.map((b) => b[2]))) / 2
+    const cy = (Math.min(...boxes.map((b) => b[1])) + Math.max(...boxes.map((b) => b[3]))) / 2
+    const at = pointerWorld()
+    const dx = Math.round(at.x - cx)
+    const dy = Math.round(at.y - cy)
+    const map = new Map<string, string>()
+    const stamp = Date.now().toString(36)
+    let i = 0
+    const fresh = (old: string, prefix: string) => {
+      const id = `${prefix}-${stamp}-${(++i).toString(36)}`
+      map.set(old, id)
+      return id
+    }
+    const notesN = clip.notes.map((n) => ({ ...structuredClone(n), id: fresh(n.id, 'note'), x: n.x + dx, y: n.y + dy, locked: false, updatedAt: Date.now() }))
+    const framesN = clip.frames.map((f) => ({ ...f, id: fresh(f.id, 'frame'), x: f.x + dx, y: f.y + dy, locked: false }))
+    const chipsN = clip.chips.map((c) => ({
+      ...c,
+      id: fresh(c.id, 'chip'),
+      x: c.x + dx,
+      y: c.y + dy,
+      on: false,
+      targets: (c.targets ?? []).map((t) => map.get(t)).filter((t): t is string => !!t),
+    }))
+    const strokesN = clip.strokes.map((st) =>
+      st.note
+        ? { ...st, id: fresh(st.id, 'ink'), note: map.get(st.note) }
+        : { ...st, id: fresh(st.id, 'ink'), x: st.x + dx, y: st.y + dy },
+    )
+    const connsN = clip.connections.map((c) => ({ ...c, id: fresh(c.id, 'conn'), from: map.get(c.from)!, to: map.get(c.to)! }))
+    setNotes((prev) => [...prev, ...notesN])
+    setFrames((prev) => [...prev, ...framesN])
+    setChips((prev) => [...prev, ...chipsN])
+    setStrokes((prev) => [...prev, ...strokesN])
+    setConnections((prev) => [...prev, ...connsN])
+    // kinds of the new ids must be known before selecting them
+    for (const f of framesN) kindRef.current.frames.add(f.id)
+    for (const c of chipsN) kindRef.current.chips.add(c.id)
+    for (const st of strokesN) if (!st.note) kindRef.current.strokes.add(st.id)
+    selectMany([...notesN, ...framesN, ...chipsN].map((o) => o.id).concat(strokesN.filter((st) => !st.note).map((st) => st.id)))
+  }
+  const clipRef = useRef({ collectSelection, removeObjects, pasteClip, createLinkNote, createTextNote, createImageNote, attachImage, pointerWorld })
+  clipRef.current = { collectSelection, removeObjects, pasteClip, createLinkNote, createTextNote, createImageNote, attachImage, pointerWorld }
 
   const handleMove = useCallback(
     (id: string, x: number, y: number) => {
@@ -645,7 +986,7 @@ export function Workspace({
       ...notes.map((n) => ({ x0: n.x, y0: n.y, x1: n.x + n.width, y1: n.y + n.height })),
       ...frames.map((f) => ({ x0: f.x, y0: f.y, x1: f.x + f.width, y1: f.y + f.height })),
       ...chips.map((c) => ({ x0: c.x, y0: c.y, x1: c.x + 140, y1: c.y + 30 })),
-      ...strokes.map((st) => {
+      ...boardStrokes.map((st) => {
         const b = strokeBounds(st)
         return { x0: b.minX, y0: b.minY, x1: b.maxX, y1: b.maxY }
       }),
@@ -656,7 +997,7 @@ export function Workspace({
     const maxX = Math.max(...boxes.map((b) => b.x1))
     const maxY = Math.max(...boxes.map((b) => b.y1))
     fitRect({ x: minX, y: minY, width: maxX - minX, height: maxY - minY })
-  }, [notes, frames, strokes, chips, fitRect])
+  }, [notes, frames, boardStrokes, chips, fitRect])
 
   /** Dock «Frame»: wraps the selected note, otherwise a new empty group in the middle of the view. */
   const createFrame = useCallback(() => {
@@ -736,7 +1077,7 @@ export function Workspace({
         id: 'theme',
         label: tr('Тема: {name}', { name: tr(nextTheme.name) }),
         icon: <RadialIcon name="theme" />,
-        run: () => patchSettings({ theme: nextTheme.id }),
+        run: () => (onSetTheme ? onSetTheme(nextTheme.id) : patchSettings({ theme: nextTheme.id })),
       },
       {
         id: 'tab-prev',
@@ -762,7 +1103,7 @@ export function Workspace({
         },
       },
     ]
-  }, [settings.theme, viewMode, toWorld, radial, addNote, createNote, fitAll, setScale, setViewMode, patchSettings, onOpenSettings, selectedId, selectedConnectionId, setConnections, deleteSelected, onSwitchTab, tabCount, tr, selectedChipId, setChips, groupSize])
+  }, [settings.theme, viewMode, toWorld, radial, addNote, createNote, fitAll, setScale, setViewMode, patchSettings, onOpenSettings, selectedId, selectedConnectionId, setConnections, deleteSelected, onSwitchTab, tabCount, tr, selectedChipId, setChips, groupSize, onSetTheme])
 
   const radialRef = useRef({ radial, radialActive, radialItems })
   radialRef.current = { radial, radialActive, radialItems }
@@ -776,6 +1117,7 @@ export function Workspace({
 
   // ---------- keyboard ----------
   const overlayOpen = settingsOpen || searchOpen
+  const pasteFallback = useRef<number | undefined>(undefined)
   useEffect(() => {
     if (!active) return
     const onMove = (e: PointerEvent | MouseEvent) => {
@@ -800,7 +1142,9 @@ export function Workspace({
         setRadial(null)
         if (e.key === 'Escape') return
       }
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      const mod = e.metaKey || e.ctrlKey
+      // physical keys (e.code), so shortcuts work on any keyboard layout (Ukrainian «в» is still KeyD)
+      if (mod && e.code === 'KeyK') {
         e.preventDefault()
         if (viewMode === 'canvas') {
           dockInputRef.current?.focus()
@@ -809,13 +1153,15 @@ export function Workspace({
         return
       }
       if (typing || overlayOpen) return
+      // undo / redo — any change on the board, also while drawing (text fields keep their own undo)
+      if (mod && (e.code === 'KeyZ' || e.code === 'KeyY') && viewMode === 'canvas') {
+        e.preventDefault()
+        if (e.code === 'KeyY' || e.shiftKey) redoRef.current()
+        else undoRef.current()
+        return
+      }
       if (drawing && viewMode === 'canvas') {
-        const k = e.key.toLowerCase()
-        if ((e.metaKey || e.ctrlKey) && k === 'z') {
-          e.preventDefault()
-          undoInk()
-          return
-        }
+        const k = e.code === 'KeyP' ? 'p' : e.code === 'KeyM' ? 'm' : e.code === 'KeyE' ? 'e' : ''
         if (e.key === 'Escape') {
           e.preventDefault()
           setDrawing(false)
@@ -827,9 +1173,28 @@ export function Workspace({
         }
         if (e.key === ' ') return // held Space = pan while drawing
       }
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'd') {
+      if (mod && e.code === 'KeyD') {
         e.preventDefault()
         if (selectedId && viewMode === 'canvas') duplicateNote(selectedId)
+        return
+      }
+      // Ctrl+C / Ctrl+X: copy / cut the selected notes, buttons, frames and drawings
+      if (mod && (e.code === 'KeyC' || e.code === 'KeyX') && viewMode === 'canvas') {
+        const clip = clipRef.current.collectSelection()
+        if (!clip) return
+        e.preventDefault()
+        boardClip = clip
+        void navigator.clipboard?.writeText(clip.text).catch(() => {})
+        if (e.code === 'KeyX') clipRef.current.removeObjects(clip)
+        return
+      }
+      // Ctrl+V: the 'paste' event below decides (photo / link / text / copied objects);
+      // if the system doesn't send one, paste the copied objects ourselves
+      if (mod && e.code === 'KeyV' && viewMode === 'canvas') {
+        window.clearTimeout(pasteFallback.current)
+        pasteFallback.current = window.setTimeout(() => {
+          if (boardClip) clipRef.current.pasteClip(boardClip)
+        }, 120)
         return
       }
       if (menu || frameMenu || chipMenu) return
@@ -843,9 +1208,14 @@ export function Workspace({
         setEditing({ id: selectedId, focus: 'body' })
         return
       }
-      if ((e.metaKey || e.ctrlKey) && e.code === 'KeyA' && viewMode === 'canvas') {
+      if (mod && e.code === 'KeyA' && viewMode === 'canvas') {
         e.preventDefault()
-        selectMany([...notesRef.current.map((n) => n.id), ...chipsRef.current.map((c) => c.id), ...framesRef.current.map((f) => f.id)])
+        selectMany([
+          ...notesRef.current.map((n) => n.id),
+          ...chipsRef.current.map((c) => c.id),
+          ...framesRef.current.map((f) => f.id),
+          ...strokesRef.current.filter((st) => !st.note).map((st) => st.id),
+        ])
         return
       }
       if (e.key === 'Escape') {
@@ -862,7 +1232,7 @@ export function Workspace({
         else if (selectedConnectionId) {
           setConnections((prev) => prev.filter((c) => c.id !== selectedConnectionId))
           setSelectedConnectionId(null)
-        } else if ((selectedId || groupSelRef.current.chips.length || groupSelRef.current.frames.length) && viewMode === 'canvas') deleteSelected()
+        } else if ((selectedId || groupLen(groupSelRef.current)) && viewMode === 'canvas') deleteSelected()
       }
     }
     const up = (e: KeyboardEvent) => {
@@ -871,17 +1241,62 @@ export function Workspace({
       runRadial(radialRef.current.radialActive)
     }
     const blur = () => setRadial(null)
+    /** Ctrl+V: a photo, a link, plain text or the objects copied with Ctrl+C / Ctrl+X. */
+    const paste = (e: ClipboardEvent) => {
+      if (isTyping(e.target) || overlayOpen || viewMode !== 'canvas') return
+      window.clearTimeout(pasteFallback.current)
+      const c = clipRef.current
+      const files = [...(e.clipboardData?.files ?? [])].filter(isImageFile)
+      if (files.length) {
+        e.preventDefault()
+        if (selectedId && files.length === 1) void c.attachImage(selectedId, files[0])
+        else files.forEach((f, i) => { const p = c.pointerWorld(); void c.createImageNote(f, { x: p.x + i * 40, y: p.y + i * 40 }) })
+        return
+      }
+      const text = e.clipboardData?.getData('text/plain') ?? ''
+      if (boardClip && (!text || text === boardClip.text)) {
+        e.preventDefault()
+        c.pasteClip(boardClip)
+        return
+      }
+      const url = parseUrl(text)
+      if (url) {
+        e.preventDefault()
+        c.createLinkNote(url, c.pointerWorld())
+        return
+      }
+      if (text.trim()) {
+        e.preventDefault()
+        c.createTextNote(text, c.pointerWorld())
+      }
+    }
+    /**
+     * A text field (e.g. the dock's search) kept the keyboard focus after a click elsewhere,
+     * so every shortcut thought you were typing. Clicking outside a field now gives the focus back.
+     */
+    const releaseFocus = (e: PointerEvent) => {
+      const a = document.activeElement as HTMLElement | null
+      const t = e.target as HTMLElement | null
+      if (!a || a === document.body || !isTyping(a) || !t || a.contains(t) || isTyping(t)) return
+      const ownNote = a.closest('[data-note-id]')
+      if (ownNote && ownNote.contains(t)) return
+      a.blur()
+    }
+    window.addEventListener('paste', paste)
+    window.addEventListener('pointerdown', releaseFocus, true)
     window.addEventListener('pointermove', onMove)
     window.addEventListener('keydown', down)
     window.addEventListener('keyup', up)
     window.addEventListener('blur', blur)
     return () => {
+      window.removeEventListener('paste', paste)
+      window.removeEventListener('pointerdown', releaseFocus, true)
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('keydown', down)
       window.removeEventListener('keyup', up)
       window.removeEventListener('blur', blur)
     }
-  }, [active, overlayOpen, viewMode, selectedId, selectedConnectionId, setConnections, deleteSelected, selectMany, radialKey, runRadial, duplicateNote, menu, drawing, undoInk, setInkPrefs, selectedFrameId, deleteFrame, selectedChipId, setChips, frameMenu, chipMenu])
+  }, [active, overlayOpen, viewMode, selectedId, selectedConnectionId, setConnections, deleteSelected, selectMany, radialKey, runRadial, duplicateNote, menu, drawing, setInkPrefs, selectedFrameId, deleteFrame, selectedChipId, setChips, frameMenu, chipMenu])
 
   // ---------- dock ----------
   const handleDockSubmit = useCallback(() => {
@@ -1013,7 +1428,26 @@ export function Workspace({
   const chipMenuChip = chipMenu ? chips.find((c) => c.id === chipMenu.id) : undefined
 
   return (
-    <div className={`app-shell view-${viewMode}`} onContextMenu={frameContextMenu}>
+    <div
+      className={`app-shell view-${viewMode}`}
+      onContextMenu={frameContextMenu}
+      onDragOver={(e) => {
+        // photos dragged in from Finder / Explorer
+        if (viewMode === 'canvas' && [...e.dataTransfer.items].some((i) => i.kind === 'file')) {
+          e.preventDefault()
+          e.dataTransfer.dropEffect = 'copy'
+        }
+      }}
+      onDrop={(e) => {
+        const files = [...e.dataTransfer.files].filter(isImageFile)
+        if (!files.length || viewMode !== 'canvas') return
+        e.preventDefault()
+        const noteId = (document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null)?.closest<HTMLElement>('[data-note-id]')?.dataset.noteId
+        if (noteId && files.length === 1) return void attachImage(noteId, files[0])
+        const p = toWorld({ x: e.clientX, y: e.clientY })
+        files.forEach((f, i) => void createImageNote(f, { x: p.x + i * 40, y: p.y + i * 40 }))
+      }}
+    >
 
       {viewMode === 'canvas' ? (
         <>
@@ -1030,6 +1464,10 @@ export function Workspace({
             grid={settings.grid}
             theme={settings.theme}
             onSelectConnection={setSelectedConnectionId}
+            onRemoveConnection={(id) => {
+              setConnections((prev) => prev.filter((c) => c.id !== id))
+              setSelectedConnectionId((s) => (s === id ? null : s))
+            }}
             onConnect={handleConnect}
             onCreateLinked={handleCreateLinked}
             onCreateAt={(p) => addNote('', { x: p.x - W / 2, y: p.y - 20 })}
@@ -1046,11 +1484,19 @@ export function Workspace({
             graphMode={graphMode}
             noteFx={noteFx}
             groupSize={groupSize}
-            extraSelected={[...groupSel.chips, ...groupSel.frames]}
+            extraSelected={[...groupSel.chips, ...groupSel.frames, ...groupSel.strokes]}
             extraSelectables={[
               ...chips.map((c) => ({ id: c.id, x: c.x, y: c.y, width: 120, height: 32 })),
               ...frames.map((f) => ({ id: f.id, x: f.x, y: f.y, width: f.width, height: f.height, contain: true })),
+              ...freeStrokes.map((st) => {
+                const b = strokeBounds(st)
+                return { id: st.id, x: b.minX, y: b.minY, width: b.maxX - b.minX, height: b.maxY - b.minY }
+              }),
             ]}
+            noteInk={noteInk}
+            imageEditId={imageEditId}
+            onImagePatch={patchNoteImage}
+            onImageEditEnd={() => setImageEditId(null)}
             onSelect={(id) => {
               setSelectedId(id)
               setSelectedFrameId(null)
@@ -1143,22 +1589,22 @@ export function Workspace({
                 />
               ) : undefined
             }
-            overlay={strokes.length ? <InkLayer strokes={strokes} /> : undefined}
+            overlay={
+              freeStrokes.length ? (
+                <InkLayer strokes={freeStrokes} selected={groupSel.strokes} onStrokeDown={drawing ? undefined : onStrokeDown} />
+              ) : undefined
+            }
           >
             {drawing && (
               <InkCapture
                 transform={transform}
                 tool={inkPrefs.tool}
                 color={inkPrefs.color}
-                strokes={strokes}
+                strokes={boardStrokes}
                 onAddStroke={addStroke}
-                onEraseStart={() => {
-                  eraseSnap.current = strokesRef.current
-                }}
+                onEraseStart={() => {}}
                 onErase={eraseStrokes}
-                onEraseEnd={() => {
-                  eraseSnap.current = null
-                }}
+                onEraseEnd={() => {}}
                 onPanStart={(e) => {
                   panPointer.current = e.pointerId
                   startPan(e.clientX, e.clientY)
@@ -1180,9 +1626,9 @@ export function Workspace({
               color={inkPrefs.color}
               onTool={(tool) => setInkPrefs((p) => ({ ...p, tool }))}
               onColor={(color) => setInkPrefs((p) => ({ ...p, color }))}
-              canUndo={historyLen > 0}
+              canUndo={canUndo}
               hasStrokes={strokes.length > 0}
-              onUndo={undoInk}
+              onUndo={undo}
               onClear={clearInk}
               onDone={() => setDrawing(false)}
             />
@@ -1285,6 +1731,15 @@ export function Workspace({
           }}
           onUnlink={() => setConnections((prev) => prev.filter((c) => c.from !== menuNote.id && c.to !== menuNote.id))}
           onDelete={() => deleteNote(menuNote.id)}
+          onPickImage={() => pickImage(menuNote.id)}
+          onEditImage={() => setImageEditId(menuNote.id)}
+          onImagePatch={(patch) => patchNoteImage(menuNote.id, patch)}
+          onRemoveImage={() => updateNote(menuNote.id, { image: undefined })}
+          inkCount={noteInk.get(menuNote.id)?.length ?? 0}
+          onDetachInk={() =>
+            setStrokes((prev) => prev.map((st) => (st.note === menuNote.id ? { ...st, note: undefined, x: st.x + menuNote.x, y: st.y + menuNote.y } : st)))
+          }
+          onDeleteInk={() => setStrokes((prev) => prev.filter((st) => st.note !== menuNote.id))}
         />
       )}
 

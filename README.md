@@ -3,20 +3,20 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/yanteezy/aethel-vault/releases/latest"><img src="https://img.shields.io/github/v/release/yanteezy/aethel-vault?style=flat-square&color=0a84ff&label=version" alt="Latest version"></a>
-  <a href="https://github.com/yanteezy/aethel-vault/releases"><img src="https://img.shields.io/github/downloads/yanteezy/aethel-vault/total?style=flat-square&color=32d74b&label=downloads" alt="Downloads"></a>
+  <a href="https://github.com/yanteezy/aether-vault/releases/latest"><img src="https://img.shields.io/github/v/release/yanteezy/aether-vault?style=flat-square&color=0a84ff&label=version" alt="Latest version"></a>
+  <a href="https://github.com/yanteezy/aether-vault/releases"><img src="https://img.shields.io/github/downloads/yanteezy/aether-vault/total?style=flat-square&color=32d74b&label=downloads" alt="Downloads"></a>
   <img src="https://img.shields.io/badge/platforms-macOS%20%7C%20Windows-8e8e93?style=flat-square" alt="macOS | Windows">
   <img src="https://img.shields.io/badge/built%20with-Tauri%202%20%2B%20React-24c8db?style=flat-square" alt="Built with Tauri 2 and React">
 </p>
 
 <p align="center">
-  <a href="https://github.com/yanteezy/aethel-vault/releases/latest/download/Aether-macOS.dmg"><img src="docs/assets/download-macos.png" alt="Download for macOS" width="340"></a>
+  <a href="https://github.com/yanteezy/aether-vault/releases/latest/download/Aether-macOS.dmg"><img src="docs/assets/download-macos.png" alt="Download for macOS" width="340"></a>
   &nbsp;
-  <a href="https://github.com/yanteezy/aethel-vault/releases/latest/download/Aether-Windows-Setup.exe"><img src="docs/assets/download-windows.png" alt="Download for Windows" width="340"></a>
+  <a href="https://github.com/yanteezy/aether-vault/releases/latest/download/Aether-Windows-Setup.exe"><img src="docs/assets/download-windows.png" alt="Download for Windows" width="340"></a>
 </p>
 
 <p align="center">
-  <sub>Free · no account · your notes never leave your computer · <a href="https://github.com/yanteezy/aethel-vault/releases">all releases</a></sub>
+  <sub>Free · no account · your notes never leave your computer · <a href="https://github.com/yanteezy/aether-vault/releases">all releases</a></sub>
 </p>
 
 ---
@@ -36,8 +36,11 @@ and flip a switch to make whole groups of notes light up, step back or hide.
 - **Six note styles** — plain, headline, caps, banner, quote and bullet list — each with its own text size and title alignment.
 - **Links.** Pull a line from the edge of one note to another to show how ideas connect.
 - **Frames.** Wrap notes into a group — move the frame and everything inside comes along. Right-click for colour, size and lock.
-- **Ink.** Draw arrows, circles and highlights with a pen, marker and eraser.
-- **Tabs.** Keep separate vaults side by side — work, study, a side project.
+- **Ink.** Draw arrows, circles and highlights with a pen, marker and eraser. Draw on a note and the sketch becomes part of it — it moves, copies and deletes with the note. Free drawings can be clicked, dragged and deleted.
+- **Photos.** Paste, drop or add a picture to any note — fill or fit, move, zoom and darken it under the text. Drop a photo on empty canvas to get a picture note.
+- **Smart links.** Paste a YouTube, GitHub, Figma, Google Docs, Notion, Spotify… link and get a card with the service, a readable title (and a preview for YouTube) that opens in your browser. Links inside notes are clickable.
+- **Tabs.** Keep separate workspaces side by side — work, study, a side project — each with its own theme if you like.
+- **Undo everything.** <kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>Z</kbd> undoes any change on the board, <kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>X</kbd> / <kbd>C</kbd> / <kbd>V</kbd> cut, copy and paste notes, buttons, frames and drawings.
 - **Select anything.** <kbd>Ctrl</kbd> / <kbd>⌘</kbd> + drag or <kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>A</kbd> picks up notes, buttons and frames together — move or delete them as one.
 - **Fonts.** Pick a font for all notes in Settings, or right-click a note to give it its own — system, serif, rounded, monospace, typewriter or handwritten.
 
@@ -98,12 +101,12 @@ The only thing Aether ever asks the internet is «is there a newer version?».
 ## 📦 Install
 
 **macOS** (Apple Silicon & Intel, macOS 12+)
-1. Download **[Aether-macOS.dmg](https://github.com/yanteezy/aethel-vault/releases/latest/download/Aether-macOS.dmg)**, open it and drag Aether into **Applications**.
+1. Download **[Aether-macOS.dmg](https://github.com/yanteezy/aether-vault/releases/latest/download/Aether-macOS.dmg)**, open it and drag Aether into **Applications**.
 2. The app isn't signed with an Apple developer certificate yet, so the first launch is blocked.
    Open **System Settings → Privacy & Security**, scroll down and click **Open Anyway**. You only need to do this once.
 
 **Windows** (10 / 11)
-1. Download **[Aether-Windows-Setup.exe](https://github.com/yanteezy/aethel-vault/releases/latest/download/Aether-Windows-Setup.exe)** and run it — no admin rights needed.
+1. Download **[Aether-Windows-Setup.exe](https://github.com/yanteezy/aether-vault/releases/latest/download/Aether-Windows-Setup.exe)** and run it — no admin rights needed.
 2. If Windows shows *«Windows protected your PC»*, click **More info → Run anyway**.
 
 ## ⌨️ Shortcuts
@@ -115,11 +118,12 @@ The only thing Aether ever asks the internet is «is there a newer version?».
 | Radial menu | hold <kbd>⌥</kbd> | hold <kbd>Alt</kbd> |
 | Edit selected note | <kbd>Enter</kbd> | <kbd>Enter</kbd> |
 | Duplicate note | <kbd>⌘</kbd> <kbd>D</kbd> | <kbd>Ctrl</kbd> <kbd>D</kbd> |
+| Undo / redo | <kbd>⌘</kbd> <kbd>Z</kbd> / <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>Z</kbd> | <kbd>Ctrl</kbd> <kbd>Z</kbd> / <kbd>Ctrl</kbd> <kbd>Y</kbd> |
+| Cut / copy / paste | <kbd>⌘</kbd> <kbd>X</kbd> <kbd>C</kbd> <kbd>V</kbd> | <kbd>Ctrl</kbd> <kbd>X</kbd> <kbd>C</kbd> <kbd>V</kbd> |
 | Select all | <kbd>⌘</kbd> <kbd>A</kbd> | <kbd>Ctrl</kbd> <kbd>A</kbd> |
 | Delete selection | <kbd>⌫</kbd> | <kbd>Delete</kbd> |
 | Next / previous tab | <kbd>⌘</kbd> <kbd>⌥</kbd> <kbd>→</kbd> / <kbd>←</kbd> | <kbd>Ctrl</kbd> <kbd>Tab</kbd> / <kbd>Ctrl</kbd> <kbd>⇧</kbd> <kbd>Tab</kbd> |
 | Drawing: pen / marker / eraser | <kbd>P</kbd> <kbd>M</kbd> <kbd>E</kbd> | <kbd>P</kbd> <kbd>M</kbd> <kbd>E</kbd> |
-| Undo a stroke | <kbd>⌘</kbd> <kbd>Z</kbd> | <kbd>Ctrl</kbd> <kbd>Z</kbd> |
 | Settings | <kbd>⌘</kbd> <kbd>,</kbd> | <kbd>Ctrl</kbd> <kbd>,</kbd> |
 
 New to Aether? **Settings → General → Guide** opens a tab with notes about every feature.

@@ -47,6 +47,8 @@ export interface Vault {
   id: string
   name: string
   createdAt: number
+  /** Own theme of this workspace (otherwise the one from Settings). */
+  theme?: import('../settings/settings').ThemeId
   /** Starts with the feature guide instead of an empty canvas. */
   seed?: 'guide'
 }
@@ -77,6 +79,10 @@ export interface NoteCardData {
   fontSize?: NoteFontSize
   /** Per-note font; undefined = the font from Settings. */
   font?: import('../settings/fonts').NoteFont
+  /** Photo in the background of the note (stored in IndexedDB). */
+  image?: import('../features/images').NoteImage
+  /** The note is a link card (YouTube, GitHub, Figma…). */
+  link?: import('../features/links').NoteLink
   updatedAt?: number
 }
 
@@ -115,6 +121,8 @@ export interface InkStroke {
   /** Offset — moving a stroke (e.g. with its frame) only changes this. */
   x: number
   y: number
+  /** Drawn on top of this note: x / y are relative to the note, it travels with it as part of its background. */
+  note?: string
 }
 
 // ---------- smart frames ----------

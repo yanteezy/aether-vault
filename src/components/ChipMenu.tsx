@@ -38,7 +38,9 @@ export function ChipMenu({ chip, at, wireCount, onClose, ...a }: Props) {
   useLayoutEffect(() => {
     const el = ref.current
     if (!el) return
-    const r = el.getBoundingClientRect()
+    // layout size, not getBoundingClientRect(): the opening animation scales the menu down,
+    // which made it look shorter than it is and pushed its bottom out of the window
+    const r = { width: el.offsetWidth, height: el.offsetHeight }
     const pad = 8
     let x = at.x
     let y = at.y

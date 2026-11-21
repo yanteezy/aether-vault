@@ -6,12 +6,13 @@ import { SplashScreen, shouldShowSplash } from './components/SplashScreen'
 import { UpdateNotice } from './components/UpdateNotice'
 import { LanguagePicker } from './components/LanguagePicker'
 import pkg from '../package.json'
-import { applySettings, DEFAULT_SETTINGS, type AppSettings } from './settings/settings'
+import { applySettings, DEFAULT_SETTINGS, type AppSettings, type ThemeId } from './settings/settings'
 import { usePersistentState } from './hooks/usePersistentState'
 import { DEFAULT_VAULT_ID, deleteVaultData } from './hooks/vaultKeys'
 import type { Vault } from './types/note'
 import { LangContext, setLang, t } from './i18n'
 import { OLD_DEMO_IDS } from './data/guide'
+import { collectUnusedImages } from './features/images'
 import './App.css'
 
 /**
@@ -131,7 +132,22 @@ export default function App() {
     return () => window.removeEventListener('keydown', h, true)
   }, [switchTabBy])
 
-  useEffect(() => applySettings(settings), [settings])
+  /** A workspace can have its own theme; otherwise the one from Settings. */
+  const withVaultTheme = useCallback(
+    (v: Vault) => (v.theme ? { ...settings, theme: v.theme } : settings),
+    [settings],
+  )
+  const effective = useMemo(() => withVaultTheme(vault), [withVaultTheme, vault])
+  useEffect(() => applySettings(effective), [effective])
+  // tidy up photos of deleted notes, once, a little after launch
+  useEffect(() => {
+    const t = window.setTimeout(() => void collectUnusedImages().catch(() => {}), 10000)
+    return () => window.clearTimeout(t)
+  }, [])
+  const setVaultTheme = useCallback(
+    (theme: ThemeId | undefined) => setVaults((prev) => prev.map((v) => (v.id === vault.id ? { ...v, theme } : v))),
+    [setVaults, vault.id],
+  )
   const patchSettings = useCallback(
     (patch: Partial<AppSettings>) => setSettings((s) => ({ ...DEFAULT_SETTINGS, ...s, ...patch })),
     [setSettings],
@@ -139,7 +155,7 @@ export default function App() {
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === ',') {
+      if ((e.metaKey || e.ctrlKey) && e.code === 'Comma') {
         e.preventDefault()
         setSettingsOpen((v) => !v)
       }
@@ -231,7 +247,8 @@ export default function App() {
                   vault={v}
                   active={isActive}
                   apiRef={isActive ? apiRef : undefined}
-                  settings={settings}
+                  settings={withVaultTheme(v)}
+                  onSetTheme={(theme) => (v.theme ? setVaultTheme(theme) : patchSettings({ theme }))}
                   patchSettings={patchSettings}
                   settingsOpen={settingsOpen}
                   onOpenSettings={() => setSettingsOpen(true)}
@@ -254,6 +271,8 @@ export default function App() {
         onChange={patchSettings}
         onClose={() => setSettingsOpen(false)}
         onOpenGuide={openGuide}
+        vaultTheme={vault.theme}
+        onVaultTheme={setVaultTheme}
       />
       {splash && <SplashScreen onDone={hideSplash} />}
       <UpdateNotice currentVersion={pkg.version} />

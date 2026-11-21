@@ -112,7 +112,7 @@ function distToSeg(px: number, py: number, ax: number, ay: number, bx: number, b
   return Math.hypot(px - (ax + t * dx), py - (ay + t * dy))
 }
 
-const StrokeView = memo(function StrokeView({ s }: { s: InkStroke }) {
+const StrokeView = memo(function StrokeView({ s, selected }: { s: InkStroke; selected?: boolean }) {
   const d = strokePath(s.points)
   return (
     <path
@@ -123,19 +123,42 @@ const StrokeView = memo(function StrokeView({ s }: { s: InkStroke }) {
         strokeWidth: INK_WIDTH[s.tool],
         strokeOpacity: s.tool === 'marker' ? MARKER_ALPHA : 1,
       }}
-      className={`ink-stroke ink-stroke--${s.tool}`}
+      className={`ink-stroke ink-stroke--${s.tool}${selected ? ' is-selected' : ''}`}
     />
   )
 })
 
-/** Saved strokes, rendered inside the world (pans & zooms with the canvas). */
-export function InkLayer({ strokes }: { strokes: InkStroke[] }) {
+/**
+ * Saved strokes, rendered inside the world (pans & zooms with the canvas).
+ * With `onStrokeDown` (not drawing) every stroke gets a wide invisible grip to select / move it.
+ */
+export function InkLayer({
+  strokes,
+  selected,
+  onStrokeDown,
+}: {
+  strokes: InkStroke[]
+  selected?: string[]
+  onStrokeDown?: (id: string, e: React.PointerEvent) => void
+}) {
   if (!strokes.length) return null
   return (
     <svg className="ink-layer" aria-hidden>
       {strokes.map((s) => (
-        <StrokeView key={s.id} s={s} />
+        <StrokeView key={s.id} s={s} selected={selected?.includes(s.id)} />
       ))}
+      {onStrokeDown &&
+        strokes.map((s) => (
+          <path
+            key={'hit-' + s.id}
+            d={strokePath(s.points)}
+            transform={s.x || s.y ? `translate(${s.x} ${s.y})` : undefined}
+            className="ink-hit"
+            data-stroke-id={s.id}
+            style={{ strokeWidth: INK_WIDTH[s.tool] + 14 }}
+            onPointerDown={(e) => onStrokeDown(s.id, e)}
+          />
+        ))}
     </svg>
   )
 }

@@ -185,3 +185,6 @@ body[data-theme='mono'] .note-card[data-tint] { border-left: 3px solid rgb(var(-
 }
 .note-menu__num:focus-within { box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.45); }
 .note-menu__num.is-disabled { opacity: 0.4; }
+
+/* photo darkening slider */
+.note-menu__range { width: 130px; accent-color: var(--accent); }

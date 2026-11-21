@@ -5,6 +5,7 @@ import {
   type AnimationSpeed,
   type AppSettings,
   type GridStyle,
+  type ThemeId,
   IS_MAC,
   keyLabel,
   radialKeyFromEvent,
@@ -35,9 +36,12 @@ interface SettingsModalProps {
   onClose: () => void
   /** Opens a new vault with the feature guide. */
   onOpenGuide: () => void
+  /** Own theme of the current workspace (undefined = follows Settings). */
+  vaultTheme?: ThemeId
+  onVaultTheme: (theme: ThemeId | undefined) => void
 }
 
-export function SettingsModal({ open, settings, vaultName, onRenameVault, onChange, onClose, onOpenGuide }: SettingsModalProps) {
+export function SettingsModal({ open, settings, vaultName, onRenameVault, onChange, onClose, onOpenGuide, vaultTheme, onVaultTheme }: SettingsModalProps) {
   const tr = useT()
   const [section, setSection] = useState<Section>('design')
   const [recording, setRecording] = useState(false)
@@ -142,12 +146,22 @@ export function SettingsModal({ open, settings, vaultName, onRenameVault, onChan
           {section === 'design' && (
             <>
               <div className="settings__group">
+                <Row label={tr('Тема для')} hint={vaultTheme ? tr('Інші сховища — зі своїми темами') : undefined}>
+                  <Segmented<'all' | 'vault'>
+                    value={vaultTheme ? 'vault' : 'all'}
+                    options={[
+                      ['all', tr('Усіх сховищ')],
+                      ['vault', tr('Лише «{name}»', { name: vaultName })],
+                    ]}
+                    onChange={(v) => onVaultTheme(v === 'vault' ? settings.theme : undefined)}
+                  />
+                </Row>
                 <div className="settings__themes">
                   {THEMES.map((t) => (
                     <button
                       key={t.id}
-                      className={`settings__theme theme-preview--${t.id}${settings.theme === t.id ? ' is-active' : ''}`}
-                      onClick={() => onChange({ theme: t.id })}
+                      className={`settings__theme theme-preview--${t.id}${(vaultTheme ?? settings.theme) === t.id ? ' is-active' : ''}`}
+                      onClick={() => (vaultTheme ? onVaultTheme(t.id) : onChange({ theme: t.id }))}
                     >
                       <span className="settings__theme-preview">
                         <span className="settings__theme-card" />

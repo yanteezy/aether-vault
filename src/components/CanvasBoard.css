@@ -133,3 +133,20 @@
 }
 body.is-marquee,
 body.is-marquee * { cursor: crosshair !important; user-select: none !important; }
+
+/* scissors in the middle of a link: hover or select the link, click to unlink */
+.connection__cut {
+  pointer-events: auto;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.connection__cut circle { fill: #3a3b44; stroke: rgba(0, 0, 0, 0.5); stroke-width: 1px; }
+.connection__cut path { stroke: #fff; stroke-width: 1.8px; stroke-linecap: round; }
+.connection__cut:hover circle { fill: #ff453a; }
+.connection:hover .connection__cut,
+.connection.is-selected .connection__cut { opacity: 1; }
+body[data-theme='light'] .connection__cut circle { fill: #fff; stroke: rgba(0, 0, 0, 0.2); }
+body[data-theme='light'] .connection__cut path { stroke: #1d1d1f; }
+body[data-theme='light'] .connection__cut:hover path { stroke: #fff; }
+body[data-theme='light'] .connection__cut:hover circle { fill: #ff453a; }

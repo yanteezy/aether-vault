@@ -4,6 +4,10 @@ import { useT } from '../i18n'
 import { NoteFxLayer } from '../effects/NoteFx'
 import type { ObjectFx } from '../effects/tagEffects'
 import { fontStack } from '../settings/fonts'
+import type { InkStroke } from '../types/note'
+import type { NoteImage } from '../features/images'
+import { NoteBackdrop } from './NoteBackdrop'
+import { LinkCard, Linkified } from './LinkCard'
 import './NoteCard.css'
 
 const SIDES: Side[] = ['top', 'right', 'bottom', 'left']
@@ -37,6 +41,12 @@ interface NoteCardProps {
   tilt: number
   /** Effects of switched-on tag buttons wired to this note. */
   fx?: ObjectFx[]
+  /** Drawings attached to this note (note coordinates). */
+  ink?: InkStroke[]
+  /** «Adjust photo» mode: drag / scroll the picture. */
+  imageEditing?: boolean
+  onImagePatch?: (id: string, patch: Partial<NoteImage>) => void
+  onImageEditEnd?: () => void
 }
 
 const MIN_W = 180
@@ -65,6 +75,10 @@ export function NoteCard({
   onUpdate,
   tilt,
   fx,
+  ink,
+  imageEditing,
+  onImagePatch,
+  onImageEditEnd,
 }: NoteCardProps) {
   const tr = useT()
   const [dragging, setDragging] = useState(false)
@@ -263,7 +277,9 @@ export function NoteCard({
         note.color === 'accent' ? ' is-accent' : ''
       }${note.locked ? ' is-locked' : ''}${isEditing ? ' is-editing' : ''} note-style--${style} title-align--${
         note.titleAlign ?? 'left'
-      }${linkTarget ? ' is-link-target' : ''}${dragging ? ' is-lifted' : ''}`}
+      }${linkTarget ? ' is-link-target' : ''}${dragging ? ' is-lifted' : ''}${note.image ? ' has-photo' : ''}${
+        note.image && !note.title && !note.body && !note.tags.length && !note.checklist?.length ? ' is-photo-only' : ''
+      }${note.link ? ' is-link' : ''}`}
       style={
         {
           transform: `translate(${note.x}px, ${note.y}px)`,
@@ -309,6 +325,16 @@ export function NoteCard({
         </button>
       ))}
 
+      {(note.image || (ink && ink.length > 0)) && (
+        <NoteBackdrop
+          image={note.image}
+          ink={ink}
+          editing={imageEditing}
+          onPatch={(patch) => note.image && onImagePatch?.(note.id, patch)}
+          onDone={onImageEditEnd}
+        />
+      )}
+
       <div className="note-card__header">
         {isEditing ? (
           <textarea
@@ -341,6 +367,8 @@ export function NoteCard({
         )}
       </div>
 
+      {note.link && !isEditing && <LinkCard link={note.link} />}
+
       {isEditing && style !== 'banner' ? (
         <textarea
           ref={bodyRef}
@@ -355,11 +383,17 @@ export function NoteCard({
       ) : style === 'bullets' && bodyLines.length > 0 ? (
         <ul className="note-card__bullets">
           {bodyLines.map((l, i) => (
-            <li key={i}>{l}</li>
+            <li key={i}>
+              <Linkified text={l} />
+            </li>
           ))}
         </ul>
       ) : (
-        note.body && style !== 'banner' && <p className="note-card__body">{note.body}</p>
+        note.body && style !== 'banner' && (
+          <p className="note-card__body">
+            <Linkified text={note.body} />
+          </p>
+        )
       )}
 
       {note.checklist && (

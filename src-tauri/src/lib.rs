@@ -1,6 +1,8 @@
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
+    // open links (YouTube, GitHub…) in the system browser
+    .plugin(tauri_plugin_opener::init())
     .setup(|app| {
       // online updates: check / download / install, then relaunch
       #[cfg(desktop)]
