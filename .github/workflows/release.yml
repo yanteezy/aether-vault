@@ -77,6 +77,7 @@ jobs:
         run: npm install
 
       - uses: tauri-apps/tauri-action@v0
+        id: tauri
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -88,3 +89,12 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+
+      - name: Fixed-name download link (Aether-Windows-Setup.exe / Aether-macOS.dmg)
+        continue-on-error: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPLOAD_URL: ${{ steps.tauri.outputs.releaseUploadUrl }}
+          ARTIFACTS: ${{ steps.tauri.outputs.artifactPaths }}
+        run: node .github/scripts/stable-asset.mjs

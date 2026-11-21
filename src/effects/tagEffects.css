@@ -180,6 +180,9 @@ body[data-theme='detective'] .note-fx__cover {
 }
 
 /* =========================== frames =========================== */
+/* frames sit at the very bottom, so a «done» note (z-index -1) recedes under the other notes
+   but stays above its frame; a selected frame comes back up so its colour palette isn't covered */
+.canvas-board__world .frame:not(.is-selected) { z-index: -2; }
 .frame { transition: opacity var(--spring-slow), filter var(--spring-slow), box-shadow var(--spring-fast), border-color var(--spring-fast); }
 .canvas-board__world .frame[data-fx~='important'] { border: 2px solid #ff453a; animation: fx-frame-important 1.6s ease-in-out infinite; }
 @keyframes fx-frame-important {

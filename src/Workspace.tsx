@@ -12,7 +12,7 @@ import { THEMES, isRadialKey, keyGlyph, type AppSettings } from './settings/sett
 import { useCanvasTransform } from './hooks/useCanvasTransform'
 import { usePersistentState } from './hooks/usePersistentState'
 import { DEFAULT_VAULT_ID, vaultKey } from './hooks/vaultKeys'
-import { GUIDE_BOUNDS, guideContent } from './data/guide'
+import { GUIDE_BOUNDS, guideContent, translateGuide } from './data/guide'
 import type { ChipColor, Connection, Frame, InkColor, InkStroke, InkTool, NoteCardData, Side, TagChip, Vault } from './types/note'
 import { TagChipLayer, TagPanel, snapTo, type ChipDrop } from './components/TagButtons'
 import { GRID } from './settings/settings'
@@ -29,6 +29,8 @@ import { RadialIcon } from './components/RadialIcons'
 let noteCounter = 1
 const newId = () => `note-${Date.now()}-${++noteCounter}`
 const W = 260
+type GroupSel = { chips: string[]; frames: string[] }
+const NO_GROUP: GroupSel = { chips: [], frames: [] }
 const H = 160
 
 /** View transform that fits a world rect between the top bar and the dock. */
@@ -97,28 +99,55 @@ export function Workspace({
   const [selectedId, setPrimaryId] = useState<string | null>(null)
   /** Multi-selection (Ctrl/⌘+click, Ctrl+drag box). Empty = only `selectedId`; otherwise it contains it. */
   const [multiIds, setMultiIds] = useState<string[]>([])
+  /** Buttons and frames taken by a box selection / Ctrl+A (together with the notes in `multiIds`). */
+  const [groupSel, setGroupSel] = useState<GroupSel>(NO_GROUP)
+  const groupSelRef = useRef(groupSel)
+  groupSelRef.current = groupSel
+  /** Which ids are buttons / frames — filled in below, once frames are known. */
+  const kindRef = useRef<{ chips: Set<string>; frames: Set<string> }>({ chips: new Set(), frames: new Set() })
   /** Plain single selection: also drops any multi-selection. */
   const setSelectedId = useCallback((v: string | null | ((s: string | null) => string | null)) => {
     setMultiIds((m) => (m.length ? [] : m))
+    setGroupSel((g) => (g.chips.length || g.frames.length ? NO_GROUP : g))
     setPrimaryId(v)
   }, [])
   const selectedIds = useMemo(
     () => new Set(multiIds.length ? multiIds : selectedId ? [selectedId] : []),
     [multiIds, selectedId],
   )
+  const groupSize = selectedIds.size + groupSel.chips.length + groupSel.frames.length
   const selectedIdsRef = useRef(selectedIds)
   selectedIdsRef.current = selectedIds
-  /** Replace the whole selection (box select, Ctrl+A). */
+  /** Replace the whole selection (box select, Ctrl+A): notes, buttons and frames. */
   const selectMany = useCallback((ids: string[]) => {
-    setMultiIds(ids.length > 1 ? ids : [])
-    setPrimaryId(ids.length ? ids[ids.length - 1] : null)
+    const k = kindRef.current
+    const chipIds = ids.filter((id) => k.chips.has(id))
+    const frameIds = ids.filter((id) => k.frames.has(id))
+    const noteIds = ids.filter((id) => !k.chips.has(id) && !k.frames.has(id))
+    const total = ids.length
     setSelectedConnectionId(null)
+    // a single button / frame is an ordinary single selection
+    if (total === 1 && chipIds.length) {
+      setMultiIds([]); setGroupSel(NO_GROUP); setPrimaryId(null); setSelectedFrameId(null)
+      setSelectedChipId(chipIds[0])
+      return
+    }
+    if (total === 1 && frameIds.length) {
+      setMultiIds([]); setGroupSel(NO_GROUP); setPrimaryId(null); setSelectedChipId(null)
+      setSelectedFrameId(frameIds[0])
+      return
+    }
+    setMultiIds(noteIds.length > 1 || total > 1 ? noteIds : [])
+    setPrimaryId(noteIds.length ? noteIds[noteIds.length - 1] : null)
+    setGroupSel(chipIds.length || frameIds.length ? { chips: chipIds, frames: frameIds } : NO_GROUP)
     setSelectedFrameId(null)
+    setSelectedChipId(null)
   }, [])
   /** Ctrl/⌘+click: add or remove one note, like icons on a desktop. */
   const toggleSelect = useCallback(
     (id: string) => {
-      const cur = [...selectedIdsRef.current]
+      const g = groupSelRef.current
+      const cur = [...selectedIdsRef.current, ...g.chips, ...g.frames]
       selectMany(cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id])
     },
     [selectMany],
@@ -143,6 +172,25 @@ export function Workspace({
     color: 'chalk',
   })
   const [drawing, setDrawing] = useState(false)
+  kindRef.current = { chips: new Set(chips.map((c) => c.id)), frames: new Set(frames.map((f) => f.id)) }
+  const chipsRef = useRef(chips)
+  chipsRef.current = chips
+
+  // language switched in Settings → the guide notes the user hasn't edited follow it
+  const langRef = useRef(settings.language)
+  useEffect(() => {
+    const from = langRef.current
+    const to = settings.language
+    langRef.current = to
+    if (from === to) return
+    const next = translateGuide({ notes: notesRef.current, frames: framesRef.current, chips: chipsRef.current }, from, to, settings.radialKey || 'Alt')
+    if (!next) return
+    setNotes(next.notes)
+    setFrames(next.frames)
+    setChips(next.chips)
+  }, [settings.language, settings.radialKey, setNotes, setFrames, setChips])
+  const framesRef = useRef(frames)
+  framesRef.current = frames
   if (drawing && viewMode !== 'canvas') setDrawing(false)
   const [selectedFrameId, setSelectedFrameId] = useState<string | null>(null)
 
@@ -204,6 +252,7 @@ export function Workspace({
 
   // ---------- smart frames ----------
   const selectFrame = useCallback((id: string | null) => {
+    if (id && isGroupedRef.current(id)) return // pressing a frame of a multi-selection keeps the selection
     setSelectedFrameId(id)
     if (id) {
       setSelectedId(null)
@@ -229,6 +278,7 @@ export function Workspace({
   } | null>(null)
   const startFrameDrag = useCallback(
     (id: string) => {
+      if (isGroupedRef.current(id)) return // the group drag snapshots everything on the first move
       const f = frames.find((x) => x.id === id)
       if (!f) return
       const inside = (x: number, y: number) => x >= f.x && x <= f.x + f.width && y >= f.y && y <= f.y + f.height
@@ -254,6 +304,7 @@ export function Workspace({
   )
   const dragFrame = useCallback(
     (id: string, dx: number, dy: number) => {
+      if (isGroupedRef.current(id)) return groupMoveByRef.current(id, Math.round(dx), Math.round(dy))
       const d = frameDrag.current
       if (!d || d.frame.id !== id) return
       const rx = Math.round(dx)
@@ -389,13 +440,17 @@ export function Workspace({
   /** Delete every selected note (one or many). */
   const deleteSelected = useCallback(() => {
     const ids = selectedIdsRef.current
-    if (!ids.size) return
+    const g = groupSelRef.current
+    if (!ids.size && !g.chips.length && !g.frames.length) return
     setNotes((prev) => prev.filter((n) => !ids.has(n.id)))
     setConnections((prev) => prev.filter((c) => !ids.has(c.from) && !ids.has(c.to)))
+    if (g.chips.length) setChips((prev) => prev.filter((c) => !g.chips.includes(c.id)))
+    if (g.frames.length) setFrames((prev) => prev.filter((f) => !g.frames.includes(f.id)))
     setPrimaryId(null)
     setMultiIds([])
+    setGroupSel(NO_GROUP)
   },
-    [setNotes, setConnections],
+    [setNotes, setConnections, setChips, setFrames],
   )
 
   const duplicateNote = useCallback(
@@ -483,32 +538,86 @@ export function Workspace({
     [notes, addNote, setConnections],
   )
 
-  /** While dragging one of several selected notes, the others follow by the same offset. */
-  const groupDrag = useRef<{ lead: string; origin: Map<string, Point> } | null>(null)
+  // ---------- group drag: notes, buttons and frames of a multi-selection move together ----------
+  /** Is this note / button / frame part of a selection of 2+ objects? */
+  const isGrouped = (id: string) => {
+    const g = groupSelRef.current
+    const size = selectedIdsRef.current.size + g.chips.length + g.frames.length
+    return size > 1 && (selectedIdsRef.current.has(id) || g.chips.includes(id) || g.frames.includes(id))
+  }
+  const isGroupedRef = useRef(isGrouped)
+  isGroupedRef.current = isGrouped
+  const groupDrag = useRef<{
+    lead: string
+    origin: Point
+    notes: Map<string, Point>
+    chips: Map<string, Point>
+    frames: Map<string, Point>
+    strokes: Map<string, Point>
+  } | null>(null)
+  /** Snapshot of everything that moves: selected objects + the contents of selected frames (locked ones stay). */
+  const beginGroupDrag = (lead: string) => {
+    const g = groupSelRef.current
+    const sel = selectedIdsRef.current
+    const fs = framesRef.current.filter((f) => g.frames.includes(f.id))
+    const inside = (f: Frame, x: number, y: number) => x >= f.x && x <= f.x + f.width && y >= f.y && y <= f.y + f.height
+    const inSelFrame = (x: number, y: number) => fs.some((f) => inside(f, x, y))
+    const notesM = new Map<string, Point>()
+    for (const n of notesRef.current)
+      if ((n.id === lead || !n.locked) && (sel.has(n.id) || inSelFrame(n.x + n.width / 2, n.y + n.height / 2))) notesM.set(n.id, { x: n.x, y: n.y })
+    const framesM = new Map<string, Point>()
+    for (const f of framesRef.current)
+      if ((f.id === lead || !f.locked) && (g.frames.includes(f.id) || fs.some((o) => o.id !== f.id && inside(o, f.x, f.y) && inside(o, f.x + f.width, f.y + f.height))))
+        framesM.set(f.id, { x: f.x, y: f.y })
+    const strokesM = new Map<string, Point>()
+    for (const st of strokesRef.current) {
+      const b = strokeBounds(st)
+      if (inSelFrame((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2)) strokesM.set(st.id, { x: st.x, y: st.y })
+    }
+    if (strokesM.size) {
+      inkHistory.current = []
+      setHistoryLen(0)
+    }
+    const chipsM = new Map<string, Point>()
+    for (const c of chipsRef.current) if (g.chips.includes(c.id)) chipsM.set(c.id, { x: c.x, y: c.y })
+    const origin =
+      notesM.get(lead) ?? chipsM.get(lead) ?? framesM.get(lead) ?? { x: 0, y: 0 }
+    groupDrag.current = { lead, origin, notes: notesM, chips: chipsM, frames: framesM, strokes: strokesM }
+    const reset = () => {
+      groupDrag.current = null
+      window.removeEventListener('pointerup', reset, true)
+      window.removeEventListener('pointercancel', reset, true)
+    }
+    window.addEventListener('pointerup', reset, true)
+    window.addEventListener('pointercancel', reset, true)
+  }
+  /** Move the whole group by (dx, dy) from where it was when the drag started. */
+  const groupMoveBy = (lead: string, dx: number, dy: number) => {
+    if (!groupDrag.current || groupDrag.current.lead !== lead) beginGroupDrag(lead)
+    const d = groupDrag.current!
+    const shift = <T extends { id: string; x: number; y: number }>(m: Map<string, Point>) => (prev: T[]) =>
+      m.size ? prev.map((o) => { const p = m.get(o.id); return p ? { ...o, x: p.x + dx, y: p.y + dy } : o }) : prev
+    setNotes(shift<NoteCardData>(d.notes))
+    setChips(shift<TagChip>(d.chips))
+    setFrames(shift<Frame>(d.frames))
+    if (d.strokes.size) setStrokes(shift<InkStroke>(d.strokes))
+  }
+  const groupMoveByRef = useRef(groupMoveBy)
+  groupMoveByRef.current = groupMoveBy
+  /** Move the group so that the dragged object (lead) ends up at (x, y). */
+  const groupMoveTo = (lead: string, x: number, y: number) => {
+    if (!groupDrag.current || groupDrag.current.lead !== lead) beginGroupDrag(lead)
+    const o = groupDrag.current!.origin
+    groupMoveBy(lead, x - o.x, y - o.y)
+  }
+  const groupMoveToRef = useRef(groupMoveTo)
+  groupMoveToRef.current = groupMoveTo
+
   const handleMove = useCallback(
-    (id: string, x: number, y: number) =>
-      setNotes((prev) => {
-        const sel = selectedIdsRef.current
-        if (sel.size < 2 || !sel.has(id)) return prev.map((n) => (n.id === id ? { ...n, x, y } : n))
-        if (!groupDrag.current || groupDrag.current.lead !== id) {
-          const origin = new Map<string, Point>()
-          for (const n of prev) if (sel.has(n.id) && (n.id === id || !n.locked)) origin.set(n.id, { x: n.x, y: n.y })
-          groupDrag.current = { lead: id, origin }
-          const reset = () => {
-            groupDrag.current = null
-            window.removeEventListener('pointerup', reset, true)
-          }
-          window.addEventListener('pointerup', reset, true)
-        }
-        const o = groupDrag.current.origin
-        const lead = o.get(id)!
-        const dx = x - lead.x
-        const dy = y - lead.y
-        return prev.map((n) => {
-          const p = o.get(n.id)
-          return p ? { ...n, x: p.x + dx, y: p.y + dy } : n
-        })
-      }),
+    (id: string, x: number, y: number) => {
+      if (isGroupedRef.current(id)) return groupMoveToRef.current(id, x, y)
+      setNotes((prev) => prev.map((n) => (n.id === id ? { ...n, x, y } : n)))
+    },
     [setNotes],
   )
 
@@ -641,7 +750,7 @@ export function Workspace({
         id: 'delete',
         label: tr('Видалити виділене'),
         icon: <RadialIcon name="delete" />,
-        disabled: !selectedId && !selectedConnectionId && !selectedChipId,
+        disabled: !selectedId && !selectedConnectionId && !selectedChipId && groupSize < 2,
         run: () => {
           if (selectedChipId) {
             setChips((prev) => prev.filter((c) => c.id !== selectedChipId))
@@ -653,7 +762,7 @@ export function Workspace({
         },
       },
     ]
-  }, [settings.theme, viewMode, toWorld, radial, addNote, createNote, fitAll, setScale, setViewMode, patchSettings, onOpenSettings, selectedId, selectedConnectionId, setConnections, deleteSelected, onSwitchTab, tabCount, tr, selectedChipId, setChips])
+  }, [settings.theme, viewMode, toWorld, radial, addNote, createNote, fitAll, setScale, setViewMode, patchSettings, onOpenSettings, selectedId, selectedConnectionId, setConnections, deleteSelected, onSwitchTab, tabCount, tr, selectedChipId, setChips, groupSize])
 
   const radialRef = useRef({ radial, radialActive, radialItems })
   radialRef.current = { radial, radialActive, radialItems }
@@ -736,7 +845,7 @@ export function Workspace({
       }
       if ((e.metaKey || e.ctrlKey) && e.code === 'KeyA' && viewMode === 'canvas') {
         e.preventDefault()
-        selectMany(notesRef.current.map((n) => n.id))
+        selectMany([...notesRef.current.map((n) => n.id), ...chipsRef.current.map((c) => c.id), ...framesRef.current.map((f) => f.id)])
         return
       }
       if (e.key === 'Escape') {
@@ -753,7 +862,7 @@ export function Workspace({
         else if (selectedConnectionId) {
           setConnections((prev) => prev.filter((c) => c.id !== selectedConnectionId))
           setSelectedConnectionId(null)
-        } else if (selectedId && viewMode === 'canvas') deleteSelected()
+        } else if ((selectedId || groupSelRef.current.chips.length || groupSelRef.current.frames.length) && viewMode === 'canvas') deleteSelected()
       }
     }
     const up = (e: KeyboardEvent) => {
@@ -936,6 +1045,12 @@ export function Workspace({
             activeFilterTags={activeTagFilters}
             graphMode={graphMode}
             noteFx={noteFx}
+            groupSize={groupSize}
+            extraSelected={[...groupSel.chips, ...groupSel.frames]}
+            extraSelectables={[
+              ...chips.map((c) => ({ id: c.id, x: c.x, y: c.y, width: 120, height: 32 })),
+              ...frames.map((f) => ({ id: f.id, x: f.x, y: f.y, width: f.width, height: f.height, contain: true })),
+            ]}
             onSelect={(id) => {
               setSelectedId(id)
               setSelectedFrameId(null)
@@ -951,13 +1066,20 @@ export function Workspace({
                   counts={tagCounts}
                   activeFilters={activeTagFilters}
                   selectedId={selectedChipId}
+                  selectedIds={groupSel.chips}
+                  grouped={(id) => isGroupedRef.current(id)}
                   onSelect={(id) => {
+                    if (id && isGroupedRef.current(id)) return // keep the multi-selection while it is dragged
                     setSelectedId(null)
                     setSelectedConnectionId(null)
                     setSelectedFrameId(null)
                     setSelectedChipId(id)
                   }}
-                  onMove={(id, x, y) => setChips((prev) => prev.map((c) => (c.id === id ? { ...c, x, y } : c)))}
+                  onMove={(id, x, y) =>
+                    isGroupedRef.current(id)
+                      ? groupMoveToRef.current(id, x, y)
+                      : setChips((prev) => prev.map((c) => (c.id === id ? { ...c, x, y } : c)))
+                  }
                   onClick={triggerChip}
                   targets={wireTargets}
                   onWire={wireChip}
@@ -1008,6 +1130,7 @@ export function Workspace({
                   counts={frameCounts}
                   scale={transform.scale}
                   selectedId={selectedFrameId}
+                  selectedIds={groupSel.frames}
                   onSelect={selectFrame}
                   onPatch={patchFrame}
                   onDelete={deleteFrame}

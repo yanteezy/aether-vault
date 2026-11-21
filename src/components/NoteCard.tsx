@@ -3,6 +3,7 @@ import { autoScale, manualScale, resolveFontSize, type ChecklistItem, type NoteC
 import { useT } from '../i18n'
 import { NoteFxLayer } from '../effects/NoteFx'
 import type { ObjectFx } from '../effects/tagEffects'
+import { fontStack } from '../settings/fonts'
 import './NoteCard.css'
 
 const SIDES: Side[] = ['top', 'right', 'bottom', 'left']
@@ -248,6 +249,7 @@ export function NoteCard({
       data-note-id={note.id}
       data-tint={note.color && note.color !== 'default' && note.color !== 'accent' ? note.color : undefined}
       data-fx={fx?.length ? fx.map((f) => f.effect).join(' ') : undefined}
+      data-font={note.font && note.font !== 'auto' ? note.font : undefined}
       draggable={false}
       onContextMenu={(e) => {
         e.preventDefault()
@@ -271,6 +273,7 @@ export function NoteCard({
           '--note-manual': manualScale(resolveFontSize(note.fontSize), note.width, note.height),
           '--tilt': `${tilt}deg`,
           '--fx-color': fx?.length ? fx[fx.length - 1].color : undefined,
+          '--nf': note.font && note.font !== 'auto' ? fontStack(note.font) : undefined,
         } as React.CSSProperties
       }
       onDoubleClick={(e) => {

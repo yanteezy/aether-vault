@@ -52,6 +52,12 @@ interface CanvasBoardProps {
   overlay?: React.ReactNode
   /** Tag buttons, drawn above the notes. */
   chipLayer?: React.ReactNode
+  /** Other objects box selection can take (buttons, frames); `contain` = only when fully inside the box. */
+  extraSelectables?: { id: string; x: number; y: number; width: number; height: number; contain?: boolean }[]
+  /** Already selected buttons / frames (kept when the box grows). */
+  extraSelected?: string[]
+  /** Size of the whole selection (notes + buttons + frames): above 1 a note drags the group. */
+  groupSize?: number
   /** Effects of switched-on tag buttons, per note id. */
   noteFx?: Map<string, ObjectFx[]>
   /** World grid period: Ctrl/⌘ while dragging snaps to it. */
@@ -104,6 +110,9 @@ export function CanvasBoard({
   children,
   chipLayer,
   noteFx,
+  extraSelectables,
+  extraSelected,
+  groupSize,
   gridStep = 24,
   radialKeyLabel = '⌥',
 }: CanvasBoardProps) {
@@ -134,7 +143,7 @@ export function CanvasBoard({
   // ---------- box selection (Ctrl/⌘ + drag on empty canvas, like a desktop) ----------
   const [marquee, setMarquee] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null)
   const startMarquee = (e: React.PointerEvent) => {
-    const base = [...selectedIds]
+    const base = [...selectedIds, ...(extraSelected ?? [])]
     const x0 = e.clientX
     const y0 = e.clientY
     document.body.classList.add('is-marquee')
@@ -152,6 +161,12 @@ export function CanvasBoard({
           return n.x < b.x && n.x + w > a.x && n.y < b.y && n.y + h > a.y
         })
         .map((n) => n.id)
+      for (const o of extraSelectables ?? []) {
+        const inside = o.contain
+          ? o.x >= a.x && o.x + o.width <= b.x && o.y >= a.y && o.y + o.height <= b.y
+          : o.x < b.x && o.x + o.width > a.x && o.y < b.y && o.y + o.height > a.y
+        if (inside) hit.push(o.id)
+      }
       onSelectMany([...base.filter((id) => !hit.includes(id)), ...hit])
     }
     const up = () => {
@@ -338,7 +353,7 @@ export function CanvasBoard({
               note={note}
               scale={transform.scale}
               selected={selectedIds.has(note.id)}
-              inGroup={selectedIds.size > 1 && selectedIds.has(note.id)}
+              inGroup={(groupSize ?? selectedIds.size) > 1 && selectedIds.has(note.id)}
               onToggleSelect={onToggleSelect}
               dimmed={dimmed}
               linkTarget={linkTargetId === note.id}

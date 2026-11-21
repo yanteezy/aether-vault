@@ -14,6 +14,7 @@ import pkg from '../../package.json'
 import { FontSizeControl } from './FontSizePicker'
 import { LANGS, useT, type Lang } from '../i18n'
 import { requestUpdateCheck } from './UpdateNotice'
+import { NoteFontPicker } from './FontPicker'
 import './SettingsModal.css'
 
 type Section = 'general' | 'design' | 'shortcuts' | 'about'
@@ -192,6 +193,10 @@ export function SettingsModal({ open, settings, vaultName, onRenameVault, onChan
                 <Row label={tr('Авторозмір тексту')} hint={tr('Текст змінюється лише разом із розміром нотатки')}>
                   <Toggle value={settings.autoTextSize} onChange={(v) => onChange({ autoTextSize: v })} />
                 </Row>
+                <div className="settings__row settings__row--stack">
+                  <div className="settings__label">{tr('Шрифт нотаток')}</div>
+                  <NoteFontPicker value={settings.noteFont} onChange={(v) => onChange({ noteFont: v ?? 'auto' })} />
+                </div>
                 <Row label={tr('Розмір тексту карток')} hint={tr('Перетягніть повзунок або введіть число')}>
                   <div className="settings__font-size">
                     <FontSizeControl

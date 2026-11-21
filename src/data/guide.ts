@@ -342,3 +342,56 @@ export function guideContent(lang: Lang, radialKey = 'Alt'): GuideContent {
 
 /** World bounds of the guide, used to fit it on first open. */
 export const GUIDE_BOUNDS = { x: 40, y: 30, width: 1560, height: 1370 }
+
+/**
+ * The interface language changed: re-translate the guide objects the user hasn't edited.
+ * Only text is swapped (titles, bodies, tags, checklist labels, frame title, button tags);
+ * positions, sizes, colours and ticks stay. Anything that differs from the original text is left alone.
+ */
+export function translateGuide(
+  state: { notes: NoteCardData[]; frames: Frame[]; chips: TagChip[] },
+  from: Lang,
+  to: Lang,
+  radialKey = 'Alt',
+) {
+  const A = guideContent(from, radialKey)
+  const B = guideContent(to, radialKey)
+  const tagMap = new Map<string, string>()
+  A.notes.forEach((n, i) => n.tags.forEach((t, j) => tagMap.set(t, B.notes[i].tags[j])))
+  A.chips.forEach((c, i) => tagMap.set(c.tag, B.chips[i].tag))
+  const swapTags = (tags: string[]) => tags.map((t) => tagMap.get(t) ?? t)
+  let changed = false
+
+  const notes = state.notes.map((n) => {
+    const i = A.notes.findIndex((a) => a.id === n.id)
+    if (i < 0) return n
+    const a = A.notes[i]
+    const b = B.notes[i]
+    const sameText = n.title === a.title && (n.body ?? '') === (a.body ?? '')
+    const sameList =
+      (n.checklist?.length ?? 0) === (a.checklist?.length ?? 0) &&
+      (n.checklist ?? []).every((it, k) => it.label === a.checklist![k].label)
+    if (!sameText || !sameList) return n
+    changed = true
+    return {
+      ...n,
+      title: b.title,
+      body: b.body,
+      tags: swapTags(n.tags),
+      checklist: n.checklist?.map((it, k) => ({ ...it, label: b.checklist![k].label })),
+    }
+  })
+  const frames = state.frames.map((f) => {
+    const i = A.frames.findIndex((a) => a.id === f.id)
+    if (i < 0 || f.title !== A.frames[i].title) return f
+    changed = true
+    return { ...f, title: B.frames[i].title }
+  })
+  const chips = state.chips.map((c) => {
+    const i = A.chips.findIndex((a) => a.id === c.id)
+    if (i < 0 || c.tag !== A.chips[i].tag) return c
+    changed = true
+    return { ...c, tag: B.chips[i].tag }
+  })
+  return changed ? { notes, frames, chips } : null
+}

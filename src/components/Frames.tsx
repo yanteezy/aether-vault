@@ -29,12 +29,14 @@ interface LayerProps extends FrameHandlers {
   counts: Map<string, number>
   scale: number
   selectedId: string | null
+  /** Frames taken by a multi-selection. */
+  selectedIds?: string[]
   /** Effects of switched-on tag buttons, per frame id. */
   fx?: Map<string, ObjectFx[]>
 }
 
 /** Smart Frames: glass groups drawn under the notes (inside the world). */
-export function FrameLayer({ frames, counts, scale, selectedId, fx, ...h }: LayerProps) {
+export function FrameLayer({ frames, counts, scale, selectedId, selectedIds, fx, ...h }: LayerProps) {
   const s = useRef(scale)
   s.current = scale
   const hRef = useRef(h)
@@ -46,7 +48,7 @@ export function FrameLayer({ frames, counts, scale, selectedId, fx, ...h }: Laye
           key={f.id}
           frame={f}
           count={counts.get(f.id) ?? 0}
-          selected={selectedId === f.id}
+          selected={selectedId === f.id || !!selectedIds?.includes(f.id)}
           fx={fx?.get(f.id)}
           scaleRef={s}
           hRef={hRef}

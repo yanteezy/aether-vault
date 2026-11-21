@@ -4,6 +4,7 @@ import { TopBar, type ViewMode } from './components/TopBar'
 import { SettingsModal } from './components/SettingsModal'
 import { SplashScreen, shouldShowSplash } from './components/SplashScreen'
 import { UpdateNotice } from './components/UpdateNotice'
+import { LanguagePicker } from './components/LanguagePicker'
 import pkg from '../package.json'
 import { applySettings, DEFAULT_SETTINGS, type AppSettings } from './settings/settings'
 import { usePersistentState } from './hooks/usePersistentState'
@@ -54,6 +55,8 @@ export default function App() {
   // set before children render so every t() call sees the current language
   setLang(settings.language)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  /** First launch: nothing else (not even the guide vault) is created until a language is picked. */
+  const [langChosen, setLangChosen] = usePersistentState<boolean>('lang-chosen', false)
   const [vaults, setVaults] = usePersistentState<Vault[]>('vaults', initialVaults())
   const [activeVaultId, setActiveVaultId] = usePersistentState<string>('active-vault', DEFAULT_VAULT_ID)
   const vault = vaults.find((v) => v.id === activeVaultId) ?? vaults[0]
@@ -183,6 +186,19 @@ export default function App() {
   const leavingVault = leaving ? vaults.find((v) => v.id === leaving.id) : undefined
   const panes = leavingVault ? [leavingVault, vault] : [vault]
   const dirName = (d: number) => (d > 0 ? 'next' : 'prev')
+
+  if (!langChosen)
+    return (
+      <LangContext.Provider value={settings.language}>
+        <LanguagePicker
+          onPick={(language) => {
+            patchSettings({ language })
+            setLangChosen(true)
+          }}
+        />
+        {splash && <SplashScreen onDone={hideSplash} />}
+      </LangContext.Provider>
+    )
 
   return (
     <LangContext.Provider value={settings.language}>

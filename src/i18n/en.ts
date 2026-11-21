@@ -295,4 +295,15 @@ export const EN: Record<string, string> = {
   'Aether перезапускається — ваші нотатки на місці': 'Aether is restarting — your notes stay put',
   'Не вдалося оновитися': 'Update failed',
   'Перевірте з’єднання з інтернетом і спробуйте пізніше': 'Check your internet connection and try again later',
+  // fonts
+  'Як у темі': 'Theme default',
+  'Системний': 'System',
+  'Із засічками': 'Serif',
+  'Округлий': 'Rounded',
+  'Моноширинний': 'Monospace',
+  'Друкарська машинка': 'Typewriter',
+  'Рукописний': 'Handwritten',
+  'Як у налаштуваннях': 'Default',
+  'Шрифт': 'Font',
+  'Шрифт нотаток': 'Note font',
 }

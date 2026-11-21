@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { autoScale, resolveFontSize, type NoteCardData, type NoteColor, type NoteStyle, type TitleAlign } from '../types/note'
 import { FontSizeControl } from './FontSizePicker'
+import { NoteFontPicker } from './FontPicker'
 import { useT } from '../i18n'
 import './NoteMenu.css'
 
@@ -186,6 +187,11 @@ export function NoteMenu({ note, at, linkCount, onClose, baseFontPx, autoTextDef
           allowAuto
           onChange={(v) => a.onPatch({ fontSize: v })}
         />
+      </div>
+
+      <div className="note-menu__block">
+        <span className="note-menu__label">{tr('Шрифт')}</span>
+        <NoteFontPicker withDefault value={note.font} onChange={(font) => a.onPatch({ font })} />
       </div>
 
       <div className="note-menu__row">

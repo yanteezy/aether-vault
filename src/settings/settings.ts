@@ -1,4 +1,5 @@
 import type { Lang } from '../i18n'
+import { fontStack, type NoteFont } from './fonts'
 export type GridStyle = 'dots' | 'lines' | 'none'
 export type AnimationSpeed = 'off' | 'fast' | 'normal' | 'relaxed'
 export type ThemeId = 'glass' | 'light' | 'detective' | 'blueprint' | 'mono'
@@ -34,6 +35,8 @@ export interface AppSettings {
   language: Lang
   /** Wheel / pinch zoom towards the cursor; off = towards the centre of the visible board. */
   zoomToCursor: boolean
+  /** Font of the note cards ('auto' = the theme's own font). */
+  noteFont: NoteFont
 }
 
 export const ACCENT_PRESETS: { name: string; value: string }[] = [
@@ -62,8 +65,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   autoTextSize: true,
   compactCorners: true,
   radialKey: 'Alt',
-  language: 'uk',
+  language: 'en',
   zoomToCursor: false,
+  noteFont: 'auto',
 }
 
 export const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)
@@ -157,4 +161,6 @@ export function applySettings(s: AppSettings) {
   root.setProperty('--speed-fast', `${fast}ms`)
   root.setProperty('--speed-slow', `${slow}ms`)
   document.body.dataset.theme = s.theme
+  document.body.dataset.noteFont = s.noteFont || 'auto'
+  root.setProperty('--note-font-global', fontStack(s.noteFont) || 'inherit')
 }

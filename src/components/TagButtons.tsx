@@ -237,6 +237,10 @@ interface ChipLayerProps {
   counts: Map<string, number>
   activeFilters: string[]
   selectedId: string | null
+  /** Buttons taken by a multi-selection. */
+  selectedIds?: string[]
+  /** Part of a multi-selection: moves with the group, never drops onto a note. */
+  grouped?: (id: string) => boolean
   /** World rects of every note and frame a cable can plug into. */
   targets: Map<string, Rect>
   onSelect: (id: string | null) => void
@@ -258,6 +262,8 @@ export function TagChipLayer({
   counts,
   activeFilters,
   selectedId,
+  selectedIds,
+  grouped,
   targets,
   onSelect,
   onMove,
@@ -361,6 +367,7 @@ export function TagChipLayer({
       setDragId(null)
       setSnapping(false)
       if (!moved) return onClick(c)
+      if (grouped?.(c.id)) return
       const el = document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null
       const noteId = el?.closest<HTMLElement>('[data-note-id]')?.dataset.noteId
       if (noteId) {
@@ -443,7 +450,7 @@ export function TagChipLayer({
               else els.current.delete(c.id)
             }}
             data-chip-id={c.id}
-            className={`tag-chip tag-chip--canvas tag-chip--size-${c.size ?? 'm'}${on ? ' is-active' : ''}${wired ? ' is-wired' : ''}${selectedId === c.id ? ' is-selected' : ''}${dragId === c.id ? ' is-dragging' : ''}${dragId === c.id && snapping ? ' is-snapping' : ''}`}
+            className={`tag-chip tag-chip--canvas tag-chip--size-${c.size ?? 'm'}${on ? ' is-active' : ''}${wired ? ' is-wired' : ''}${selectedId === c.id || selectedIds?.includes(c.id) ? ' is-selected' : ''}${dragId === c.id ? ' is-dragging' : ''}${dragId === c.id && snapping ? ' is-snapping' : ''}`}
             style={{ transform: `translate(${c.x}px, ${c.y}px)`, '--chip': CHIP_COLORS[c.color] } as React.CSSProperties}
             role="switch"
             aria-checked={on}

@@ -75,6 +75,8 @@ export interface NoteCardData {
   titleAlign?: TitleAlign
   /** Per-note text size (independent from the global setting). */
   fontSize?: NoteFontSize
+  /** Per-note font; undefined = the font from Settings. */
+  font?: import('../settings/fonts').NoteFont
   updatedAt?: number
 }
 

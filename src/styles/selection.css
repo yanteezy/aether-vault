@@ -1,0 +1,61 @@
+/* =========================================================
+   Selection ring — the same for notes, buttons and frames.
+   Drawn OUTSIDE the object with a gap, so the canvas shows between the object and the ring:
+   readable on any note colour (even a blue note with a blue accent).
+   ========================================================= */
+.canvas-board__world .note-card.is-selected,
+.canvas-board__world .note-card.is-multi {
+  outline: 2.5px solid var(--accent);
+  outline-offset: 4px;
+}
+/* soft halo around the ring for extra contrast on busy boards */
+.canvas-board__world .note-card.is-selected::after,
+.canvas-board__world .note-card.is-multi::after {
+  content: '';
+  position: absolute;
+  inset: -9px;
+  border-radius: calc(var(--card-radius) + 8px);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.28);
+  pointer-events: none;
+}
+
+.canvas-board__world .tag-chip--canvas.is-selected {
+  outline: 2.5px solid var(--accent);
+  outline-offset: 4px;
+}
+
+.canvas-board__world .frame.is-selected {
+  outline: 2.5px solid var(--accent);
+  outline-offset: 5px;
+}
+
+/* mono: no colour — a bold white ring */
+body[data-theme='mono'] .canvas-board__world .note-card.is-selected,
+body[data-theme='mono'] .canvas-board__world .note-card.is-multi,
+body[data-theme='mono'] .canvas-board__world .tag-chip--canvas.is-selected,
+body[data-theme='mono'] .canvas-board__world .frame.is-selected {
+  outline-color: #f7f7f7;
+}
+body[data-theme='mono'] .canvas-board__world .note-card.is-selected::after,
+body[data-theme='mono'] .canvas-board__world .note-card.is-multi::after {
+  box-shadow: none;
+}
+/* light theme: a darker halo reads better on white paper */
+body[data-theme='light'] .canvas-board__world .note-card.is-selected::after,
+body[data-theme='light'] .canvas-board__world .note-card.is-multi::after {
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.2);
+}
+
+/* =========================================================
+   Note fonts. Settings → Design sets --note-font-global (body[data-note-font]);
+   a note's own font (right click → Шрифт) sets --nf on the card and wins.
+   Code blocks always keep their monospace font.
+   ========================================================= */
+body:not([data-note-font='auto']) .canvas-board__world .note-card,
+body:not([data-note-font='auto']) .canvas-board__world .note-card :is(.note-card__title, .note-card__body, .note-card__bullets, .note-card__checklist, .note-card__checklist-item, .note-card__checklist-item *, .note-card__add-item, input, textarea:not(.note-card__code)) {
+  font-family: var(--note-font-global) !important;
+}
+body .canvas-board__world .note-card[data-font],
+body .canvas-board__world .note-card[data-font] :is(.note-card__title, .note-card__body, .note-card__bullets, .note-card__checklist, .note-card__checklist-item, .note-card__checklist-item *, .note-card__add-item, input, textarea:not(.note-card__code)) {
+  font-family: var(--nf) !important;
+}
