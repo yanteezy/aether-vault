@@ -1,0 +1,125 @@
+.quick-search-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 18vh;
+  background: rgba(0, 0, 0, 0.25);
+  animation: qs-fade var(--speed-fast, 200ms) ease-out;
+}
+.quick-search {
+  width: 640px;
+  max-width: calc(100vw - 48px);
+  border-radius: 16px;
+  background: rgba(24, 25, 32, 0.86);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  backdrop-filter: blur(28px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+  transform-origin: 50% 0;
+  animation: qs-pop var(--speed-slow, 320ms) var(--spring);
+}
+.quick-search__field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 56px;
+  padding: 0 18px;
+}
+.quick-search__icon { color: var(--text-tertiary); flex: none; }
+.quick-search__input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 20px;
+  font-weight: 450;
+  color: var(--text-primary);
+}
+.quick-search__input::placeholder { color: var(--text-tertiary); }
+.quick-search__kbd {
+  font-family: inherit;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  color: var(--text-tertiary);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.quick-search__results {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  max-height: 400px;
+  overflow: auto;
+}
+.quick-search__item {
+  padding: 9px 12px;
+  border-radius: 10px;
+  cursor: default;
+}
+.quick-search__item.is-active { background: var(--accent); }
+.quick-search__item.is-active .quick-search__snippet { color: rgba(255, 255, 255, 0.8); }
+.quick-search__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.quick-search__snippet {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.quick-search mark {
+  background: rgba(var(--accent-rgb, 10, 132, 255), 0.3);
+  color: inherit;
+  border-radius: 3px;
+}
+.quick-search__item.is-active mark { background: rgba(255, 255, 255, 0.28); }
+.quick-search__item.is-create .quick-search__title { color: var(--text-secondary); font-weight: 500; }
+.quick-search__item.is-create.is-active .quick-search__title { color: #fff; }
+.quick-search__empty {
+  padding: 18px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-tertiary);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+@keyframes qs-fade { from { opacity: 0; } }
+@keyframes qs-pop { from { opacity: 0; transform: scale(0.96) translateY(-8px); } }
+
+/* spec: Gemini (Дизайн) */
+.quick-search {
+  width: 580px;
+  background: rgba(22, 23, 30, 0.88);
+  -webkit-backdrop-filter: blur(32px) saturate(190%);
+  backdrop-filter: blur(32px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  animation: qs-pop 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.quick-search__field { height: 52px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.quick-search__icon { width: 18px; height: 18px; color: rgba(255, 255, 255, 0.4); }
+.quick-search__input { font-size: 17px; }
+.quick-search__results { max-height: 380px; border-top: none; padding: 3px 0; }
+.quick-search__item {
+  min-height: 44px; margin: 3px 6px; padding: 6px 12px; border-radius: 10px;
+  border-left: 3px solid transparent;
+  display: flex; flex-direction: column; justify-content: center;
+}
+.quick-search__item.is-active { background: rgba(255, 255, 255, 0.1); border-left-color: var(--accent); }
+.quick-search__title { color: #fff; }
+.quick-search__snippet, .quick-search__item.is-active .quick-search__snippet { font-size: 12px; color: rgba(255, 255, 255, 0.45); }
+.quick-search mark, .quick-search__item.is-active mark {
+  background: transparent; color: var(--accent); font-weight: 600; text-decoration: underline;
+}
+.quick-search__item.is-create.is-active .quick-search__title { color: #fff; }

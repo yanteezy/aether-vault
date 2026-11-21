@@ -1,0 +1,195 @@
+/* =========================================================
+   Effects of triggered tag buttons on wired notes & frames.
+   NoteCard gets data-fx="effect effect…" and a .note-fx overlay;
+   frames get data-fx and --fx-color.
+   ========================================================= */
+
+/* smooth on/off for the properties effects touch (transform stays instant for dragging) */
+.canvas-board__world .note-card {
+  transition:
+    box-shadow var(--spring-fast),
+    border-color var(--spring-fast),
+    opacity var(--spring-slow),
+    filter var(--spring-slow);
+}
+
+.note-fx {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 4;
+}
+.note-fx__badges {
+  position: absolute;
+  top: -11px;
+  right: -11px;
+  display: flex;
+  gap: 4px;
+}
+.note-fx__badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font: 800 14px/1 var(--font-stack);
+  color: #fff;
+  background: var(--fx-color, var(--accent));
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.35), 0 4px 10px rgba(0, 0, 0, 0.35);
+  animation: fx-pop 380ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.note-fx__badge svg { display: block; }
+@keyframes fx-pop {
+  from { scale: 0.2; opacity: 0; }
+}
+
+/* ---------- Важливо: red pulsing glow, steps forward ---------- */
+.note-card[data-fx~='important'] {
+  z-index: 3;
+  border-color: #ff453a;
+  animation: fx-important 1.6s ease-in-out infinite;
+}
+@keyframes fx-important {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(255, 69, 58, 0.9), 0 0 18px 2px rgba(255, 69, 58, 0.35), 0 16px 36px rgba(0, 0, 0, 0.45); }
+  50% { box-shadow: 0 0 0 2px rgba(255, 69, 58, 1), 0 0 34px 10px rgba(255, 69, 58, 0.55), 0 16px 36px rgba(0, 0, 0, 0.45); }
+}
+
+/* ---------- Ідея: warm glow + light bulb ---------- */
+.note-card[data-fx~='idea'] {
+  border-color: rgba(255, 196, 64, 0.9);
+  filter: brightness(1.08) saturate(1.1);
+  box-shadow: 0 0 0 1.5px rgba(255, 196, 64, 0.85), 0 0 40px 6px rgba(255, 180, 40, 0.4), 0 12px 28px rgba(0, 0, 0, 0.35);
+}
+.note-card[data-fx~='idea'] .note-fx::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(120% 80% at 100% 0%, rgba(255, 205, 90, 0.28), transparent 60%);
+}
+.note-fx__badge--idea {
+  color: #3a2600;
+  background: #ffc940;
+  animation: fx-pop 380ms cubic-bezier(0.34, 1.56, 0.64, 1) both, fx-bulb 2.2s ease-in-out 380ms infinite;
+}
+@keyframes fx-bulb {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.3), 0 0 8px 2px rgba(255, 201, 64, 0.5); }
+  50% { box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.3), 0 0 20px 8px rgba(255, 201, 64, 0.8); }
+}
+
+/* ---------- Зробити: marching dashed outline around the note ---------- */
+/* SVG stroke: dashes run evenly along all four sides; the note itself doesn't move */
+.note-fx__dash {
+  position: absolute;
+  inset: -6px;
+  width: calc(100% + 12px);
+  height: calc(100% + 12px);
+  overflow: visible;
+}
+.note-fx__dash rect {
+  x: 1px;
+  y: 1px;
+  width: calc(100% - 2px);
+  height: calc(100% - 2px);
+  rx: calc(var(--card-radius) + 5px);
+  fill: none;
+  stroke: var(--fx-todo, #40a9ff);
+  stroke-width: 2px;
+  stroke-dasharray: 9 7;
+  vector-effect: non-scaling-stroke;
+  animation: fx-march 1s linear infinite;
+}
+@keyframes fx-march {
+  to { stroke-dashoffset: -16; }
+}
+
+/* ---------- Питання: purple outline + pulsing «?» (no movement of the note) ---------- */
+.note-card[data-fx~='question'] {
+  border-color: #bf5af2;
+  box-shadow: 0 0 0 1.5px rgba(191, 90, 242, 0.7), 0 12px 28px rgba(0, 0, 0, 0.35);
+}
+.note-fx__badge--question {
+  background: #bf5af2;
+  animation: fx-pop 380ms cubic-bezier(0.34, 1.56, 0.64, 1) both, fx-ask 2.4s ease-in-out 380ms infinite;
+}
+@keyframes fx-ask {
+  0%, 70%, 100% { box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.35), 0 0 0 0 rgba(191, 90, 242, 0.6); }
+  85% { box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.35), 0 0 0 8px rgba(191, 90, 242, 0); }
+}
+
+/* ---------- Готово: steps back (under other notes) and turns grey ---------- */
+.note-card[data-fx~='done'] {
+  z-index: -1; /* behind the other notes — layer only, position untouched */
+  opacity: 0.55;
+  filter: grayscale(1) brightness(0.85);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+}
+.note-card[data-fx~='done']:hover { opacity: 0.8; }
+.note-fx__badge--done { background: #32d74b; filter: grayscale(0.35); }
+
+/* ---------- Особисте: content behind a frosted shutter ---------- */
+.note-fx__cover {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 8px, transparent 8px 16px),
+    #1c1c22; /* opaque: nothing of the content shows through */
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  color: rgba(255, 255, 255, 0.85);
+  font: 650 12px/1 var(--font-stack);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  animation: fx-shutter 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  pointer-events: auto; /* the content underneath can't be clicked into */
+}
+.note-fx__cover svg { opacity: 0.9; }
+@keyframes fx-shutter {
+  from { clip-path: inset(0 0 100% 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+body[data-theme='light'] .note-fx__cover {
+  background: repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.03) 0 8px, transparent 8px 16px), #f2f2f6;
+  color: #3a3a3c;
+}
+body[data-theme='detective'] .note-fx__cover {
+  background: repeating-linear-gradient(135deg, rgba(60, 40, 20, 0.06) 0 8px, transparent 8px 16px), #d9c9a3;
+  color: #3b2a15;
+}
+
+/* ---------- Підсвітка: glows in the button colour ---------- */
+.note-card[data-fx~='highlight'] {
+  border-color: var(--fx-color);
+  box-shadow: 0 0 0 2px var(--fx-color), 0 0 30px 4px color-mix(in srgb, var(--fx-color) 45%, transparent), 0 12px 28px rgba(0, 0, 0, 0.35);
+}
+
+/* ---------- Приглушити ---------- */
+.note-card[data-fx~='fade'] { opacity: 0.22; }
+.note-card[data-fx~='fade']:hover { opacity: 0.6; }
+
+@media (prefers-reduced-motion: reduce) {
+  .note-card[data-fx], .note-fx *, .note-fx::after { animation: none !important; }
+}
+
+/* =========================== frames =========================== */
+.frame { transition: opacity var(--spring-slow), filter var(--spring-slow), box-shadow var(--spring-fast), border-color var(--spring-fast); }
+.canvas-board__world .frame[data-fx~='important'] { border: 2px solid #ff453a; animation: fx-frame-important 1.6s ease-in-out infinite; }
+@keyframes fx-frame-important {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(255, 69, 58, 0.15); }
+  50% { box-shadow: 0 0 0 8px rgba(255, 69, 58, 0.28); }
+}
+.canvas-board__world .frame[data-fx~='idea'] { border-color: rgba(255, 196, 64, 0.9); background: rgba(255, 196, 64, 0.08); box-shadow: 0 0 48px 4px rgba(255, 180, 40, 0.25); }
+.canvas-board__world .frame[data-fx~='todo'] { border: 2px dashed #40a9ff; background: rgba(64, 169, 255, 0.06); }
+.canvas-board__world .frame[data-fx~='question'] { border-color: #bf5af2; background: rgba(191, 90, 242, 0.07); }
+.canvas-board__world .frame[data-fx~='done'] { opacity: 0.5; filter: grayscale(1); }
+.canvas-board__world .frame[data-fx~='private'] { border-style: solid; border-color: rgba(152, 152, 157, 0.8); background: rgba(120, 120, 128, 0.14); }
+.canvas-board__world .frame[data-fx~='highlight'] { border: 2px solid var(--fx-color); box-shadow: 0 0 36px 2px color-mix(in srgb, var(--fx-color) 35%, transparent); }
+.canvas-board__world .frame[data-fx~='fade'] { opacity: 0.25; }

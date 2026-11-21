@@ -1,0 +1,29 @@
+/* Frame menu: reuses .note-menu, only the name field and frame swatches are its own. */
+.frame-menu__name {
+  flex: 1;
+  min-width: 0;
+  max-width: 170px;
+  height: 26px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 7px;
+  outline: none;
+  background: var(--menu-seg-bg, rgba(255, 255, 255, 0.06));
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  user-select: text;
+}
+.frame-menu__name:focus { box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.45); }
+
+.frame-menu__swatch { background: rgb(var(--sw)); }
+.frame-menu__swatch--default {
+  background: linear-gradient(135deg, var(--glass-bg) 45%, rgba(255, 255, 255, 0.5) 45% 55%, var(--glass-bg) 55%);
+  border-color: var(--menu-border, rgba(255, 255, 255, 0.3));
+}
+body[data-theme='light'] .frame-menu__swatch--default {
+  background: linear-gradient(135deg, #fff 45%, #d1d1d6 45% 55%, #fff 55%);
+  border-color: rgba(0, 0, 0, 0.15);
+}
+body[data-theme='detective'] .frame-menu__name { color: #2b2418; }

@@ -1,0 +1,105 @@
+:root {
+  --font-stack:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue',
+    sans-serif;
+
+  --spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --spring-fast: 180ms var(--spring);
+  --spring-slow: 420ms var(--spring);
+
+  --bg-canvas: #0e0f14;
+  --dot-color: rgba(255, 255, 255, 0.1);
+
+  --glass-bg: rgba(30, 31, 40, 0.75);
+  --connection-width: 2px;
+  --glass-bg-strong: rgba(24, 24, 28, 0.82);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-border-strong: rgba(255, 255, 255, 0.18);
+
+  --text-primary: rgba(255, 255, 255, 0.94);
+  --text-secondary: rgba(235, 235, 245, 0.6);
+  --text-tertiary: rgba(235, 235, 245, 0.38);
+
+  --accent: #0a84ff;
+  --accent-soft: rgba(10, 132, 255, 0.18);
+  --glass-blur: 24px;
+  --card-radius: 14px;
+  --card-font-size: 15px;
+
+  /* window chrome (top bar, tabs) */
+  --chrome-fill: rgba(255, 255, 255, 0.07);
+  --chrome-fill-hover: rgba(255, 255, 255, 0.1);
+  --chrome-fill-active: rgba(255, 255, 255, 0.14);
+  --chrome-border: rgba(255, 255, 255, 0.1);
+  --chrome-sep: rgba(255, 255, 255, 0.12);
+  --chrome-input: rgba(0, 0, 0, 0.3);
+  --chrome-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-stack);
+  background: transparent;
+  color: var(--text-primary);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+input,
+textarea {
+  font-family: inherit;
+  user-select: text;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+button {
+  font-family: inherit;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.glass-panel {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  border: 1px solid var(--glass-border);
+}
+
+.glass-panel-strong {
+  background: var(--glass-bg-strong);
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) + 4px)) saturate(180%);
+  backdrop-filter: blur(calc(var(--glass-blur) + 4px)) saturate(180%);
+  border: 1px solid var(--glass-border-strong);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}

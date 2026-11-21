@@ -1,0 +1,165 @@
+/* Freehand ink: saved strokes (in world), capture overlay, Apple-style tool palette */
+
+:root { --ink-chalk: #ffffff; }
+body[data-theme='light'],
+body[data-theme='detective'] { --ink-chalk: #1d1d1f; }
+
+.ink-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 7;
+}
+
+.ink-stroke {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ink-stroke--marker { mix-blend-mode: normal; }
+
+/* overlay that captures input while drawing */
+.ink-capture {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  touch-action: none;
+  cursor: none;
+}
+.ink-capture--pan { cursor: grab; }
+.ink-capture--pan:active { cursor: grabbing; }
+
+.ink-capture__live {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.ink-capture__dot,
+.ink-capture__eraser {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  translate: -50% -50%;
+}
+.ink-capture__dot { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25); }
+.ink-capture__eraser {
+  border: 1.5px solid var(--text-primary, #fff);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3);
+}
+
+/* ---------- tool palette (sits above the Command Dock) ---------- */
+.ink-toolbar {
+  position: fixed;
+  left: 50%;
+  bottom: 104px;
+  transform: translateX(-50%);
+  z-index: 55;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 20px;
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.4),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.12);
+  animation: ink-rise 460ms var(--spring, cubic-bezier(0.16, 1, 0.3, 1));
+  user-select: none;
+}
+@keyframes ink-rise {
+  from { opacity: 0; transform: translate(-50%, 14px) scale(0.94); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+.ink-toolbar__group { display: flex; align-items: center; gap: 2px; }
+.ink-toolbar__sep { width: 1px; height: 24px; background: var(--glass-border, rgba(255, 255, 255, 0.12)); }
+
+.ink-toolbar__tool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 54px;
+  padding: 5px 8px;
+  border-radius: 13px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 600;
+  transition:
+    background var(--spring-fast),
+    color var(--spring-fast),
+    transform var(--spring-fast);
+}
+.ink-toolbar__tool:hover { background: rgba(255, 255, 255, 0.07); color: var(--text-primary); }
+.ink-toolbar__tool:active { transform: scale(0.94); }
+.ink-toolbar__tool.is-active { background: var(--accent-soft); color: #6cb4ff; }
+.ink-toolbar__tool:disabled { opacity: 0.35; pointer-events: none; }
+
+.ink-toolbar__swatch {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  margin: 0 2px;
+  border-radius: 50%;
+  background: var(--sw);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.18),
+    0 1px 2px rgba(0, 0, 0, 0.3);
+  transition: transform var(--spring-fast);
+}
+.ink-toolbar__swatch:hover { transform: scale(1.12); }
+.ink-toolbar__swatch.is-active { transform: scale(1.08); }
+.ink-toolbar__swatch.is-active::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--accent, #0a84ff);
+}
+.ink-toolbar.is-eraser .ink-toolbar__swatch { opacity: 0.45; }
+
+.ink-toolbar__btn {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 11px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.05);
+  transition:
+    background var(--spring-fast),
+    color var(--spring-fast),
+    transform var(--spring-fast);
+}
+.ink-toolbar__btn:hover { background: rgba(255, 255, 255, 0.1); color: var(--text-primary); }
+.ink-toolbar__btn:active { transform: scale(0.95); }
+.ink-toolbar__btn:disabled { opacity: 0.35; pointer-events: none; }
+.ink-toolbar__btn.is-danger { color: #ff6961; background: rgba(255, 69, 58, 0.14); }
+.ink-toolbar__btn.is-primary { color: #fff; background: var(--accent, #0a84ff); }
+.ink-toolbar__btn.is-primary:hover { filter: brightness(1.1); }
+
+body[data-theme='light'] .ink-toolbar__tool:hover,
+body[data-theme='detective'] .ink-toolbar__tool:hover,
+body[data-theme='light'] .ink-toolbar__btn,
+body[data-theme='detective'] .ink-toolbar__btn { background: rgba(0, 0, 0, 0.05); }
+body[data-theme='light'] .ink-toolbar__tool.is-active,
+body[data-theme='detective'] .ink-toolbar__tool.is-active { color: var(--accent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ink-toolbar { animation-duration: 1ms; }
+}
+
+/* mono: accent is near-white, so text on it must be dark */
+body[data-theme='mono'] .ink-toolbar__btn.is-primary { color: #111; }
+body[data-theme='mono'] .ink-toolbar__tool.is-active { color: var(--accent); }

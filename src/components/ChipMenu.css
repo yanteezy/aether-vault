@@ -1,0 +1,59 @@
+/* Tag button menu: reuses .note-menu; effect list is its own. */
+.chip-menu { width: 280px; }
+.chip-menu__section {
+  padding: 4px 10px 2px;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.chip-menu__effects { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; padding: 4px 6px 2px; }
+.chip-menu__fx {
+  width: 100%;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 7px;
+  border-radius: 7px;
+  text-align: left;
+  color: var(--text-primary);
+  background: none;
+}
+.chip-menu__fx:hover { background: var(--menu-hover, rgba(255, 255, 255, 0.07)); }
+.chip-menu__fx.is-active { background: rgba(var(--accent-rgb), 0.18); box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.55); }
+.chip-menu__fx-name { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chip-menu__fx-current { padding: 4px 10px 6px; }
+.chip-menu__fx-hint { font-size: 11px; color: var(--text-tertiary); line-height: 1.3; }
+.chip-menu__fixed { display: flex; flex-direction: column; gap: 3px; padding: 4px 10px 6px; }
+.chip-menu__fx-note { margin-top: 3px; font-size: 11px; color: var(--text-tertiary); line-height: 1.35; }
+.chip-menu__tip { padding: 2px 10px 6px; font-size: 11px; color: var(--text-tertiary); line-height: 1.35; }
+
+/* small preview swatch of each effect */
+.chip-menu__fx-icon {
+  flex: none;
+  width: 18px;
+  height: 13px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.chip-menu__fx-icon--important { border-color: #ff453a; box-shadow: 0 0 6px 1px rgba(255, 69, 58, 0.7); }
+.chip-menu__fx-icon--idea { border-color: #ffc940; background: rgba(255, 201, 64, 0.35); box-shadow: 0 0 8px rgba(255, 201, 64, 0.6); }
+.chip-menu__fx-icon--todo { border: 1.5px dashed #40a9ff; background: none; }
+.chip-menu__fx-icon--question { border-color: #bf5af2; rotate: -8deg; }
+.chip-menu__fx-icon--done { scale: 0.8; opacity: 0.45; filter: grayscale(1); }
+.chip-menu__fx-icon--private { background: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0 3px, transparent 3px 6px), #444; }
+.chip-menu__fx-icon--highlight { border-color: var(--accent); box-shadow: 0 0 8px var(--accent); }
+.chip-menu__fx-icon--fade { opacity: 0.25; }
+
+body[data-theme='light'] .chip-menu__fx-icon { background: rgba(0, 0, 0, 0.06); border-color: rgba(0, 0, 0, 0.15); }
+body[data-theme='light'] .chip-menu__fx-icon--private { background: repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.15) 0 3px, transparent 3px 6px), #d1d1d6; }
+body[data-theme='detective'] .chip-menu__fx { color: #2b2418; }
+body[data-theme='detective'] .chip-menu__fx-hint,
+body[data-theme='detective'] .chip-menu__fx-note,
+body[data-theme='detective'] .chip-menu__tip,
+body[data-theme='detective'] .chip-menu__section { color: rgba(40, 20, 5, 0.6); }
