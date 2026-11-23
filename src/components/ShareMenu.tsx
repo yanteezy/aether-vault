@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useT } from '../i18n'
+import { useFocusTrap } from '../hooks/useFocusTrap'
 import { usePersistentState } from '../hooks/usePersistentState'
 import { backupFileName, createBackup, revealFile, saveBackupFile } from '../features/backup'
 import { copyText, generatePassword, LONG_LINK, makeShareLink, type SharedBoard } from '../features/share'
@@ -40,6 +41,7 @@ export function ShareMenu({ open, anchor, onClose, api, copyNonce, vaultId, vaul
   const [counts, setCounts] = useState({ notes: 0, selected: 0 })
   const ref = useRef<HTMLDivElement>(null)
   const pwRef = useRef<HTMLInputElement>(null)
+  useFocusTrap(ref, open, '.share-menu__cta')
 
   // each time it opens: fresh counts, selection only if something is selected
   useLayoutEffect(() => {
@@ -83,7 +85,39 @@ export function ShareMenu({ open, anchor, onClose, api, copyNonce, vaultId, vaul
     return () => window.clearTimeout(id)
   }, [copyNonce])
 
+  // how long the link will be — known before copying, so a too-long link can be avoided (the .aether file instead)
+  const [linkLen, setLinkLen] = useState<number | null>(null)
+  useEffect(() => {
+    if (!open) return
+    let alive = true
+    const id = window.setTimeout(async () => {
+      const snap = api.current?.shareSnapshot({ selection, skipPrivate: opts.skipPrivate })
+      if (!snap) return
+      try {
+        const plain = await makeShareLink({
+          v: 1,
+          name: vaultName,
+          notes: snap.notes,
+          connections: snap.connections,
+          frames: snap.frames,
+          chips: snap.chips,
+          strokes: snap.strokes,
+          ...(opts.withTheme ? { theme: { theme, canvasBg } } : {}),
+        })
+        // a password adds salt + iv + tag (44 bytes → ~60 characters)
+        if (alive) setLinkLen(plain.length + (lock ? 60 : 0))
+      } catch {
+        if (alive) setLinkLen(null)
+      }
+    }, 120)
+    return () => {
+      alive = false
+      window.clearTimeout(id)
+    }
+  }, [open, selection, opts, lock, vaultName, theme, canvasBg, api])
+
   if (!open) return null
+  const tooLong = linkLen !== null && linkLen > LONG_LINK
 
   const board = (): { board: SharedBoard; skipped: number; photos: number } | null => {
     const snap = api.current?.shareSnapshot({ selection, skipPrivate: opts.skipPrivate })
@@ -167,6 +201,13 @@ export function ShareMenu({ open, anchor, onClose, api, copyNonce, vaultId, vaul
         {selection ? tr('Скопіювати посилання на виділене') : tr('Скопіювати посилання')}
         <span className="share-menu__kbd">{IS_MAC ? '⇧⌘C' : 'Ctrl+Shift+C'}</span>
       </button>
+      {linkLen !== null && (
+        <div className={`share-menu__size${tooLong ? ' is-long' : ''}`}>
+          {tooLong
+            ? tr('≈ {n} символів — задовге для деяких месенджерів. Надійніше надіслати файл .aether', { n: linkLen.toLocaleString() })
+            : tr('≈ {n} символів', { n: linkLen.toLocaleString() })}
+        </div>
+      )}
 
       {counts.selected > 0 && (
         <Row icon="select" label={tr('Лише виділене')} extra={`· ${counts.selected}`} on={selection} onToggle={() => setSelection((v) => !v)} />
@@ -223,7 +264,7 @@ export function ShareMenu({ open, anchor, onClose, api, copyNonce, vaultId, vaul
 
       <div className="share-menu__sep" />
 
-      <button className="share-menu__row share-menu__row--plain" disabled={busy} onClick={() => void saveFile()}>
+      <button className={`share-menu__row share-menu__row--plain${tooLong ? ' is-suggested' : ''}`} disabled={busy} onClick={() => void saveFile()}>
         <Icon name="file" />
         <span className="share-menu__label">
           {tr('Файл .aether')}

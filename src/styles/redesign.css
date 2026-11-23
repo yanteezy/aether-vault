@@ -1,0 +1,280 @@
+/* =====================================================================
+   Redesign (0.2.22) — loaded last.
+   1. Hierarchy on the canvas: notes first; links, cables and free drawings step back until you reach for them.
+   2. One look for every menu: same panel, paddings, radius, rows, hover tint, switches and buttons.
+   ===================================================================== */
+
+/* ---------- 1. secondary layers step back ---------- */
+.canvas-board__world .connection .connection-line,
+.canvas-board__world .connection .connection-dot,
+.wire-layer .wire,
+.canvas-board__world .ink-layer:not(.note-ink *) .ink-stroke {
+  transition: opacity 200ms ease;
+}
+.canvas-board__world .connection:not(.is-selected):not(:hover) .connection-line,
+.canvas-board__world .connection:not(.is-selected):not(:hover) .connection-dot {
+  opacity: 0.5;
+}
+.canvas-board__world .connections-layer.is-emphasized .connection .connection-line,
+.canvas-board__world .connections-layer.is-emphasized .connection .connection-dot {
+  opacity: 1;
+}
+/* a cable carrying current (button switched on) stays bright: it means something */
+.wire-layer .wire:not(.is-on):not(.is-selected) { opacity: 0.45; }
+.wire-layer .wire:hover { opacity: 1; }
+/* free drawings: present but quiet; full strength when selected or while drawing */
+.canvas-board__world .ink-layer:not(.note-ink *) .ink-stroke:not(.is-selected) { opacity: 0.6; }
+body:has(.ink-toolbar) .canvas-board__world .ink-layer .ink-stroke { opacity: 1; }
+/* buttons carry text, so they are never faded (WCAG 1.4.3) — only text-free layers step back */
+
+/* ---------- 2. one look for every menu ---------- */
+:root {
+  --menu-radius: 14px;
+  --menu-pad: 8px;
+  --menu-row-pad: 7px 10px;
+  --menu-row-radius: 9px;
+  --menu-hover: color-mix(in srgb, var(--accent) 16%, transparent);
+  --menu-sep: var(--chrome-sep, rgba(255, 255, 255, 0.08));
+  --menu-label: 11px;
+}
+/* panels: opaque (theme glass over the theme canvas) so text never fights the board behind */
+.note-menu,
+.frame-menu,
+.chip-menu,
+.share-menu,
+.ink-palette__pop {
+  border-radius: var(--menu-radius) !important;
+  background: linear-gradient(var(--glass-bg-strong), var(--glass-bg-strong)), var(--bg-canvas) !important;
+  border: 1px solid var(--glass-border-strong) !important;
+  box-shadow: 0 22px 50px rgba(0, 0, 0, 0.42), inset 0 0.5px 0 rgba(255, 255, 255, 0.1) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.note-menu,
+.frame-menu,
+.chip-menu { padding: var(--menu-pad) !important; }
+
+/* section labels: one size, one colour, one case */
+.note-menu__label,
+.frame-menu__label,
+.chip-menu__label,
+.note-menu__section-title {
+  font-size: var(--menu-label) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.02em;
+  color: var(--text-tertiary) !important;
+}
+
+/* rows / items: same padding, radius and hover tint everywhere; text goes full-strength on hover */
+.note-menu__item,
+.frame-menu__item,
+.chip-menu__item,
+.chip-menu__action,
+.note-menu__action {
+  padding: var(--menu-row-pad) !important;
+  border-radius: var(--menu-row-radius) !important;
+  transition: background 150ms, color 150ms;
+}
+.note-menu__item:hover,
+.frame-menu__item:hover,
+.chip-menu__item:hover,
+.chip-menu__action:hover,
+.note-menu__action:hover,
+.share-menu__row:hover {
+  background: var(--menu-hover) !important;
+  color: var(--text-primary) !important;
+}
+.note-menu__sep,
+.frame-menu__sep,
+.chip-menu__sep,
+.share-menu__sep { background: var(--menu-sep) !important; margin: 6px 2px !important; }
+
+/* ---------- buttons: three kinds only ---------- */
+/* primary — accent fill, white text in every state */
+.backup__btn--primary,
+.share-menu__cta,
+.share-open__cta {
+  background: var(--accent) !important;
+  color: #fff !important;
+}
+/* secondary — soft fill */
+.backup__btn,
+.settings__reset--inline {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px !important;
+  border-radius: 9px !important;
+  background: var(--chrome-fill) !important;
+  color: var(--text-primary) !important;
+  font-weight: 600 !important;
+  text-decoration: none !important;
+  transition: background 150ms, filter 150ms;
+}
+.backup__btn:hover,
+.settings__reset--inline:hover { background: var(--menu-hover) !important; }
+.backup__btn--primary:hover { filter: brightness(1.1); background: var(--accent) !important; }
+/* ghost — text only (cancel, show in folder) */
+.share-open__cancel,
+.share-menu__link,
+.backup__link { background: none; }
+
+/* section titles: sentence case everywhere (the button menu used capitals, the others did not) */
+.chip-menu__section {
+  text-transform: none !important;
+  font-size: var(--menu-label) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.02em !important;
+  color: var(--text-tertiary) !important;
+}
+/* the dock's shortcut badge stays on one line */
+.command-dock__kbd { white-space: nowrap; flex: none; }
+.settings__nav-title { text-transform: none !important; letter-spacing: 0.02em !important; }
+
+/* =====================================================================
+   Accessibility (0.2.23) — WCAG 2.2 AA
+   ===================================================================== */
+
+/* 1.4.3 contrast — text on an accent fill uses the computed --accent-fill / --on-accent pair (≥ 4.5:1) */
+:root { --accent-fill: #0a6fd6; --on-accent: #ffffff; }
+.top-bar .top-bar__new-note,
+.share-menu__cta,
+.share-open__cta,
+.backup__btn--primary,
+.first-hint__next,
+.palette__plus,
+.fs-control__auto.is-active,
+.note-menu__seg button.is-active,
+.note-menu__item:hover:not(:disabled),
+.settings__nav-item.is-active,
+.update-notice__btn.is-primary,
+.quick-search__item.is-active,
+.notes-view__new:hover,
+.radial__item.is-active,
+body[data-theme='light'] .radial__item.is-active {
+  background: var(--accent-fill) !important;
+  color: var(--on-accent) !important;
+}
+.top-bar .top-bar__new-note:hover,
+.share-menu__cta:hover,
+.share-open__cta:hover,
+.backup__btn--primary:hover,
+.first-hint__next:hover { filter: brightness(1.06); color: var(--on-accent) !important; }
+
+/* secondary / tertiary text: ≥ 4.5:1 on panels in every plain theme */
+:root { --text-tertiary: rgba(235, 235, 245, 0.62); }
+body[data-theme='glass'] { --text-tertiary: rgba(235, 235, 245, 0.62); }
+body[data-theme='light'] { --text-secondary: #5c5c61; --text-tertiary: #6b6b70; }
+/* tags and counters on notes / buttons / frames */
+.note-card__tag { opacity: 1 !important; filter: none !important; color: color-mix(in srgb, var(--accent) 50%, #ffffff) !important; }
+body[data-theme='light'] .note-card__tag { color: color-mix(in srgb, var(--accent) 55%, #000000) !important; }
+body[data-theme='light'] .tag-chip__count,
+body[data-theme='light'] .frame__count { color: #4a4a50 !important; }
+.tag-chip__count { color: var(--text-secondary) !important; opacity: 1 !important; }
+/* small text that sat just under 4.5:1 */
+.note-menu__item kbd,
+.share-menu__kbd { opacity: 1 !important; color: inherit !important; }
+.note-menu__item:not(:hover) kbd { color: var(--text-secondary) !important; }
+.share-menu__cta .share-menu__kbd { color: var(--on-accent) !important; }
+.tag-chip__count { color: var(--text-primary) !important; }
+.settings__nav-title,
+.note-menu__dims span,
+.note-menu__num span,
+.font-tile.is-default .font-tile__aa { color: var(--text-secondary) !important; }
+/* the ◆ before a tab name is decorative (aria-hidden) — still keep it readable */
+.vault-tab__glyph { color: color-mix(in srgb, var(--accent) 60%, #ffffff) !important; }
+body[data-theme='light'] .vault-tab__glyph { color: color-mix(in srgb, var(--accent) 60%, #000000) !important; }
+
+/* 2.5.8 target size — 24×24 hit areas without changing how things look */
+.tag-panel__color {
+  width: 24px !important;
+  height: 24px !important;
+  padding: 4px !important;
+  background-clip: content-box !important;
+}
+.frame__dot {
+  width: 24px !important;
+  height: 24px !important;
+  margin: -6px !important;
+  padding: 6px !important;
+  background-clip: content-box !important;
+}
+.frame__dot { box-shadow: none !important; }
+
+/* 2.4.7 focus visible — notes and buttons on the canvas are Tab stops now */
+.note-card:focus-visible,
+.tag-chip--canvas:focus-visible {
+  outline: 2.5px solid var(--accent) !important;
+  outline-offset: 4px !important;
+}
+
+/* target picker inside menus ("Зʼєднати з…", "Підʼєднати до…") */
+.target-picker { margin: 2px 4px 6px; padding: 6px; border-radius: 10px; background: var(--chrome-fill); }
+.target-picker__input {
+  width: 100%; height: 30px; box-sizing: border-box; padding: 0 9px; border-radius: 8px;
+  border: 1px solid var(--glass-border-strong); background: var(--chrome-input); color: var(--text-primary); font: inherit; font-size: 13px; outline: none;
+}
+.target-picker__input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+.target-picker__list { max-height: 176px; overflow-y: auto; margin-top: 4px; }
+.target-picker__item { display: flex; align-items: center; gap: 8px; padding: 6px 9px; border-radius: 8px; font-size: 13px; cursor: pointer; }
+.target-picker__item.is-active { background: var(--menu-hover); color: var(--text-primary); }
+.target-picker__label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.target-picker__kind { font-size: 11px; color: var(--text-secondary); }
+.target-picker__empty { padding: 8px 9px; font-size: 12.5px; color: var(--text-secondary); }
+
+/* screen-reader-only text (h1, live region) */
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+/* 2.4.1 bypass blocks: hidden until focused, then a clear pill at the top left */
+.skip-link {
+  position: fixed;
+  left: 12px;
+  top: -60px;
+  z-index: 10001;
+  padding: 9px 14px;
+  border-radius: 10px;
+  background: var(--accent-fill);
+  color: var(--on-accent);
+  font-weight: 650;
+  text-decoration: none;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  transition: top 160ms ease-out;
+}
+.skip-link:focus { top: 10px; outline: 2.5px solid var(--on-accent); outline-offset: 2px; }
+#canvas-main:focus { outline: none; }
+
+/* 2.3.3 / user preference: "reduce motion" turns every animation and transition into an instant change */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+/* 2.5.8: small round swatches keep their look; an invisible ring makes the hit area 24 px */
+.note-menu__swatch { position: relative; }
+.note-menu__swatch::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+}
+.settings__swatch { width: 24px !important; height: 24px !important; }
+.settings__toggle { min-height: 24px; }
+.fs-control button { min-width: 24px; min-height: 24px; }
+/* counters inherit the readable colour of the button label in every theme */
+.tag-chip__count { color: inherit !important; }
+.fs-control span { color: var(--text-secondary) !important; }

@@ -22,8 +22,9 @@ interface TopBarProps {
   onShare: () => void
   shareOpen: boolean
   shareRef: React.RefObject<HTMLButtonElement | null>
-  zoomPercent: number
-  showZoom: boolean
+  /** Shown at the bottom left now (Workspace) — kept for compatibility. */
+  zoomPercent?: number
+  showZoom?: boolean
 }
 
 const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
@@ -43,8 +44,6 @@ export function TopBar({
   onShare,
   shareOpen,
   shareRef,
-  zoomPercent,
-  showZoom,
 }: TopBarProps) {
   const tr = useT()
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
@@ -174,55 +173,55 @@ export function TopBar({
           </svg>
         </button>
       </div>
-      <div className="top-bar__right" data-tauri-drag-region>
-        <div className="top-bar__view" role="radiogroup" aria-label={tr('Вигляд')} data-no-drag>
-          <button className={viewMode === 'canvas' ? 'is-active' : ''} onClick={() => onViewMode('canvas')}>
+      {/* centre: one calm switch between the two views */}
+      <div className="top-bar__center" data-no-drag>
+        <div className="top-bar__view" role="radiogroup" aria-label={tr('Вигляд')}>
+          <button role="radio" aria-checked={viewMode === 'canvas'} className={viewMode === 'canvas' ? 'is-active' : ''} onClick={() => onViewMode('canvas')}>
             {tr('Полотно')}
           </button>
-          <button className={viewMode === 'list' ? 'is-active' : ''} onClick={() => onViewMode('list')}>
+          <button role="radio" aria-checked={viewMode === 'list'} className={viewMode === 'list' ? 'is-active' : ''} onClick={() => onViewMode('list')}>
             {tr('Нотатки')}
           </button>
         </div>
-        {showZoom && viewMode === 'canvas' && (
-          <span className="top-bar__zoom" data-tauri-drag-region>
-            {zoomPercent}%
-          </span>
-        )}
-        <button
-          ref={shareRef}
-          className={`top-bar__icon-btn${shareOpen ? ' is-active' : ''}`}
-          onClick={onShare}
-          aria-label={tr('Поширити')}
-          aria-expanded={shareOpen}
-          title={tr('Поширити') + (IS_MAC ? ' (⇧⌘C)' : ' (Ctrl+Shift+C)')}
-        >
-          <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden>
-            <circle cx="14.5" cy="5" r="2.2" />
-            <circle cx="5.5" cy="10" r="2.2" />
-            <circle cx="14.5" cy="15" r="2.2" />
-            <path d="M7.5 9l5-2.8M7.5 11l5 2.8" />
+      </div>
+      {/* right: quiet tools, then the one primary action */}
+      <div className="top-bar__right" data-tauri-drag-region>
+        <div className="top-bar__tools" data-no-drag>
+          <button
+            ref={shareRef}
+            className={`top-bar__icon-btn${shareOpen ? ' is-active' : ''}`}
+            onClick={onShare}
+            aria-label={tr('Поширити')}
+            aria-expanded={shareOpen}
+            title={tr('Поширити') + (IS_MAC ? ' (⇧⌘C)' : ' (Ctrl+Shift+C)')}
+          >
+            <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden>
+              <circle cx="14.5" cy="5" r="2.2" />
+              <circle cx="5.5" cy="10" r="2.2" />
+              <circle cx="14.5" cy="15" r="2.2" />
+              <path d="M7.5 9l5-2.8M7.5 11l5 2.8" />
+            </svg>
+          </button>
+          <button
+            className="top-bar__icon-btn"
+            onClick={onOpenSettings}
+            aria-label={tr('Налаштування')}
+            title={tr('Налаштування') + (IS_MAC ? ' (⌘,)' : ' (Ctrl+,)')}
+          >
+            <svg viewBox="0 0 20 20" width="16" height="16" fill="none">
+              <path d="M10 12.6a2.6 2.6 0 1 0 0-5.2 2.6 2.6 0 0 0 0 5.2Z" stroke="currentColor" strokeWidth="1.5" />
+              <path
+                d="M16.2 12.1a1.3 1.3 0 0 0 .26 1.43l.05.05a1.58 1.58 0 1 1-2.23 2.23l-.05-.05a1.3 1.3 0 0 0-1.43-.26 1.3 1.3 0 0 0-.79 1.19v.14a1.58 1.58 0 1 1-3.16 0v-.07a1.3 1.3 0 0 0-.85-1.19 1.3 1.3 0 0 0-1.43.26l-.05.05a1.58 1.58 0 1 1-2.23-2.23l.05-.05a1.3 1.3 0 0 0 .26-1.43 1.3 1.3 0 0 0-1.19-.79h-.14a1.58 1.58 0 1 1 0-3.16h.07a1.3 1.3 0 0 0 1.19-.85 1.3 1.3 0 0 0-.26-1.43l-.05-.05a1.58 1.58 0 1 1 2.23-2.23l.05.05a1.3 1.3 0 0 0 1.43.26h.06a1.3 1.3 0 0 0 .79-1.19v-.14a1.58 1.58 0 1 1 3.16 0v.07a1.3 1.3 0 0 0 .79 1.19 1.3 1.3 0 0 0 1.43-.26l.05-.05a1.58 1.58 0 1 1 2.23 2.23l-.05.05a1.3 1.3 0 0 0-.26 1.43v.06a1.3 1.3 0 0 0 1.19.79h.14a1.58 1.58 0 1 1 0 3.16h-.07a1.3 1.3 0 0 0-1.19.79Z"
+                stroke="currentColor"
+                strokeWidth="1.3"
+              />
+            </svg>
+          </button>
+        </div>
+        <button className="top-bar__new-note" onClick={onNewNote} title={tr('Нова нотатка — або двічі клацніть по полотну')}>
+          <svg viewBox="0 0 12 12" width="11" height="11" aria-hidden>
+            <path d="M6 1.5v9M1.5 6h9" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
           </svg>
-        </button>
-        <button
-          className="top-bar__icon-btn"
-          onClick={onOpenSettings}
-          aria-label={tr('Налаштування')}
-          title={tr('Налаштування') + (IS_MAC ? ' (⌘,)' : ' (Ctrl+,)')}
-        >
-          <svg viewBox="0 0 20 20" width="16" height="16" fill="none">
-            <path
-              d="M10 12.6a2.6 2.6 0 1 0 0-5.2 2.6 2.6 0 0 0 0 5.2Z"
-              stroke="currentColor"
-              strokeWidth="1.5"
-            />
-            <path
-              d="M16.2 12.1a1.3 1.3 0 0 0 .26 1.43l.05.05a1.58 1.58 0 1 1-2.23 2.23l-.05-.05a1.3 1.3 0 0 0-1.43-.26 1.3 1.3 0 0 0-.79 1.19v.14a1.58 1.58 0 1 1-3.16 0v-.07a1.3 1.3 0 0 0-.85-1.19 1.3 1.3 0 0 0-1.43.26l-.05.05a1.58 1.58 0 1 1-2.23-2.23l.05-.05a1.3 1.3 0 0 0 .26-1.43 1.3 1.3 0 0 0-1.19-.79h-.14a1.58 1.58 0 1 1 0-3.16h.07a1.3 1.3 0 0 0 1.19-.85 1.3 1.3 0 0 0-.26-1.43l-.05-.05a1.58 1.58 0 1 1 2.23-2.23l.05.05a1.3 1.3 0 0 0 1.43.26h.06a1.3 1.3 0 0 0 .79-1.19v-.14a1.58 1.58 0 1 1 3.16 0v.07a1.3 1.3 0 0 0 .79 1.19 1.3 1.3 0 0 0 1.43-.26l.05-.05a1.58 1.58 0 1 1 2.23 2.23l-.05.05a1.3 1.3 0 0 0-.26 1.43v.06a1.3 1.3 0 0 0 1.19.79h.14a1.58 1.58 0 1 1 0 3.16h-.07a1.3 1.3 0 0 0-1.19.79Z"
-              stroke="currentColor"
-              strokeWidth="1.3"
-            />
-          </svg>
-        </button>
-        <button className="top-bar__new-note" onClick={onNewNote}>
           {tr('Нова нотатка')}
         </button>
       </div>

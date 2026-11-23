@@ -1,3 +1,5 @@
+import { keys, removeItem } from '../features/store'
+
 const STORAGE_PREFIX = 'aethel-vault:'
 
 /** The first vault keeps the legacy keys so existing notes survive the upgrade. */
@@ -9,11 +11,11 @@ export function vaultKey(vaultId: string, key: string) {
 
 export function deleteVaultData(vaultId: string) {
   if (vaultId === DEFAULT_VAULT_ID) {
-    for (const k of ['notes', 'connections', 'canvas-transform', 'ink', 'frames', 'chips']) localStorage.removeItem(STORAGE_PREFIX + k)
+    for (const k of ['notes', 'connections', 'canvas-transform', 'ink', 'frames', 'chips']) removeItem(STORAGE_PREFIX + k)
     return
   }
   const prefix = `${STORAGE_PREFIX}vault:${vaultId}:`
-  Object.keys(localStorage)
+  keys()
     .filter((k) => k.startsWith(prefix))
-    .forEach((k) => localStorage.removeItem(k))
+    .forEach((k) => removeItem(k))
 }

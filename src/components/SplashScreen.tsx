@@ -20,6 +20,16 @@ import './SplashScreen.css'
 const REDUCED_MS = 450
 const SKIP_FADE_MS = 200
 const SESSION_KEY = 'aether:splash-shown'
+/** The full animation plays on the first launch of the day; later launches get a 0.6 s fade. */
+const DAY_KEY = 'aether:splash-day'
+const today = () => new Date().toISOString().slice(0, 10)
+function seenToday() {
+  try {
+    return localStorage.getItem(DAY_KEY) === today()
+  } catch {
+    return false
+  }
+}
 const VARIANT_KEY = 'aether:splash-variant'
 type Variant = SplashVariant | 'dock'
 export const DEFAULT_SPLASH_VARIANT: Variant = 'dock'
@@ -48,6 +58,7 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
   const trRef = useRef(tr)
   trRef.current = tr
   const [variant] = useState(pickVariant)
+  const [quick] = useState(seenToday)
   const [skipping, setSkipping] = useState(false)
   const logoRef = useRef<HTMLImageElement>(null)
   const hostRef = useRef<HTMLDivElement>(null)
@@ -61,9 +72,11 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
   useEffect(() => {
     try {
       sessionStorage.setItem(SESSION_KEY, '1')
+      localStorage.setItem(DAY_KEY, today())
     } catch {
       /* ignore */
     }
+    if (quick) return // the short fade is pure CSS (see render)
     const host = hostRef.current
     const canvas = canvasRef.current
     const ctx = canvas?.getContext('2d')
@@ -157,7 +170,14 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
       window.removeEventListener('keydown', onKey, true)
       window.removeEventListener('resize', fit)
     }
-  }, [variant])
+  }, [variant, quick])
+
+  if (quick)
+    return (
+      <div className="splash splash--quick" role="presentation" aria-hidden="true" onAnimationEnd={(e) => e.target === e.currentTarget && doneRef.current()}>
+        <img className="splash__quick-logo" src={logo} alt="" draggable={false} />
+      </div>
+    )
 
   return (
     <div

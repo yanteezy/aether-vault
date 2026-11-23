@@ -16,7 +16,14 @@ import { collectUnusedImages } from './features/images'
 import { parseShareLink, type SharedBoard, type ShareToken } from './features/share'
 import { ShareMenu } from './components/ShareMenu'
 import { ShareOpenDialog } from './components/ShareOpenDialog'
+import { FirstHints } from './components/FirstHints'
 import { vaultKey } from './hooks/vaultKeys'
+import { getItem, removeItem, setItem } from './features/store'
+import { showToast } from './features/toast'
+import { coachKey, coachMouse } from './features/coach'
+import { Toast } from './components/Toast'
+import { SaveStatusBanner } from './components/SaveStatusBanner'
+import { hasPreImport, IMPORT_DONE, revertImport } from './features/backup'
 import './App.css'
 
 /**
@@ -26,15 +33,15 @@ import './App.css'
 function migrateOldDemo() {
   const P = 'aethel-vault:'
   try {
-    if (localStorage.getItem(P + 'guide-migrated')) return
-    localStorage.setItem(P + 'guide-migrated', '1')
-    const raw = localStorage.getItem(P + 'notes')
+    if (getItem(P + 'guide-migrated')) return
+    setItem(P + 'guide-migrated', '1')
+    const raw = getItem(P + 'notes')
     if (!raw) return
     const notes = JSON.parse(raw) as { id: string }[]
     if (!Array.isArray(notes) || !notes.every((n) => OLD_DEMO_IDS.has(n.id))) return
-    for (const k of ['notes', 'connections', 'canvas-transform']) localStorage.removeItem(P + k)
-    if (!localStorage.getItem(P + 'ink') || localStorage.getItem(P + 'ink') === '[]') localStorage.removeItem(P + 'ink')
-    if (!localStorage.getItem(P + 'frames') || localStorage.getItem(P + 'frames') === '[]') localStorage.removeItem(P + 'frames')
+    for (const k of ['notes', 'connections', 'canvas-transform']) removeItem(P + k)
+    if (!getItem(P + 'ink') || getItem(P + 'ink') === '[]') removeItem(P + 'ink')
+    if (!getItem(P + 'frames') || getItem(P + 'frames') === '[]') removeItem(P + 'frames')
   } catch {
     /* storage unavailable */
   }
@@ -45,7 +52,7 @@ function initialVaults(): Vault[] {
   // migrate the old single-vault name (settings.vaultName)
   let name = 'Aether'
   try {
-    const raw = localStorage.getItem('aethel-vault:settings')
+    const raw = getItem('aethel-vault:settings')
     const old = raw ? (JSON.parse(raw) as Partial<AppSettings>).vaultName : undefined
     if (old && old !== 'Aethel Vault') name = old
   } catch {
@@ -60,6 +67,7 @@ export default function App() {
   // set before children render so every t() call sees the current language
   setLang(settings.language)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settingsJump, setSettingsJump] = useState<{ section: 'general'; n: number }>()
   /** First launch: nothing else (not even the guide vault) is created until a language is picked. */
   const [langChosen, setLangChosen] = usePersistentState<boolean>('lang-chosen', false)
   const [vaults, setVaults] = usePersistentState<Vault[]>('vaults', initialVaults())
@@ -188,6 +196,7 @@ export default function App() {
     const h = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.code === 'Comma') {
         e.preventDefault()
+        coachKey('settings')
         setSettingsOpen((v) => !v)
       }
     }
@@ -218,7 +227,7 @@ export default function App() {
   const openSharedBoard = useCallback(
     (b: SharedBoard) => {
       const id = `v${Date.now().toString(36)}`
-      const put = (k: string, v: unknown) => localStorage.setItem('aethel-vault:' + vaultKey(id, k), JSON.stringify(v))
+      const put = (k: string, v: unknown) => setItem('aethel-vault:' + vaultKey(id, k), JSON.stringify(v))
       put('notes', b.notes)
       put('connections', b.connections)
       put('frames', b.frames)
@@ -272,6 +281,7 @@ export default function App() {
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey) || !e.shiftKey || e.altKey || e.code !== 'KeyC') return
+      coachKey('share')
       const el = e.target as HTMLElement | null
       if (el?.closest?.('input, textarea, [contenteditable="true"]')) return
       e.preventDefault()
@@ -288,16 +298,65 @@ export default function App() {
     [setVaults],
   )
 
+  /**
+   * Deleting a workspace can be undone for a few seconds: the tab goes away at once, its files only when the
+   * "Deleted · Undo" toast expires (or the app closes).
+   */
   const deleteVault = useCallback(
     (id: string) => {
       if (vaults.length <= 1) return
-      deleteVaultData(id)
+      const at = vaults.findIndex((v) => v.id === id)
+      const gone = vaults[at]
+      if (!gone) return
+      const wasActive = id === activeVaultId
       const rest = vaults.filter((v) => v.id !== id)
       setVaults(rest)
-      if (id === activeVaultId) setActiveVaultId(rest[0].id)
+      if (wasActive) setActiveVaultId(rest[Math.max(0, at - 1)].id)
+      showToast({
+        id: 'vault-deleted',
+        text: t('Сховище «{name}» видалено', { name: gone.name }),
+        ms: 8000,
+        expireOnExit: true,
+        action: {
+          label: t('Повернути'),
+          run: () => {
+            setVaults((prev) => (prev.some((v) => v.id === gone.id) ? prev : [...prev.slice(0, at), gone, ...prev.slice(at)]))
+            if (wasActive) setActiveVaultId(gone.id)
+          },
+        },
+        onExpire: () => deleteVaultData(gone.id),
+      })
     },
     [vaults, activeVaultId, setVaults, setActiveVaultId],
   )
+
+  // after an import (the app has just reloaded): say so, with the way back
+  useEffect(() => {
+    const raw = getItem('aethel-vault:' + IMPORT_DONE)
+    if (!raw) return
+    removeItem('aethel-vault:' + IMPORT_DONE)
+    let info: { at?: number; revert?: boolean } = {}
+    try {
+      info = JSON.parse(raw)
+    } catch {
+      /* ignore */
+    }
+    if (!info.at || Date.now() - info.at > 120000) return
+    window.setTimeout(
+      () =>
+        showToast(
+          info.revert
+            ? { id: 'import', text: t('Дані повернуто, як було до імпорту'), ms: 6000 }
+            : {
+                id: 'import',
+                text: t('Дані імпортовано'),
+                ms: 12000,
+                ...(hasPreImport() ? { action: { label: t('Повернути як було'), run: () => void revertImport() } } : {}),
+              },
+        ),
+      600,
+    )
+  }, [])
 
   const leavingVault = leaving ? vaults.find((v) => v.id === leaving.id) : undefined
   const panes = leavingVault ? [leavingVault, vault] : [vault]
@@ -320,6 +379,18 @@ export default function App() {
   return (
     <LangContext.Provider value={settings.language}>
       <div className={`app-root view-${viewMode}`}>
+        {/* WCAG 2.4.1: first Tab stop jumps over the top bar straight to the notes */}
+        <a
+          className="skip-link"
+          href="#canvas-main"
+          onClick={(e) => {
+            e.preventDefault()
+            const first = document.querySelector<HTMLElement>('.ws-pane:not(.is-leaving) [data-note-id]')
+            ;(first ?? document.getElementById('canvas-main'))?.focus()
+          }}
+        >
+          {t('Перейти до нотаток')}
+        </a>
         <TopBar
           vaults={vaults}
           activeVaultId={vault.id}
@@ -330,14 +401,21 @@ export default function App() {
           viewMode={viewMode}
           onViewMode={setViewMode}
           onNewNote={() => apiRef.current?.newNote()}
-          onOpenSettings={() => setSettingsOpen(true)}
-          onShare={() => setShareOpen((v) => !v)}
+          onOpenSettings={() => {
+            coachMouse('settings')
+            setSettingsOpen(true)
+          }}
+          onShare={() => {
+            if (!shareOpen) coachMouse('share')
+            setShareOpen((v) => !v)
+          }}
           shareOpen={shareOpen}
           shareRef={shareBtnRef}
           zoomPercent={zoomPercent}
           showZoom={settings.showZoom}
         />
-        <div className="ws-stage">
+        <main className="ws-stage" id="canvas-main" tabIndex={-1} aria-label={t('Полотно')}>
+          <h1 className="sr-only">{vault.name} — Aether</h1>
           {panes.map((v) => {
             const isActive = v.id === vault.id
             const cls = isActive
@@ -362,13 +440,15 @@ export default function App() {
                   onSwitchTab={switchTabBy}
                   tabCount={vaults.length}
                   onShareLink={isActive ? handleShareLink : undefined}
+                  onOpenShare={() => setShareOpen(true)}
                 />
               </div>
             )
           })}
-        </div>
+        </main>
       </div>
       <SettingsModal
+        jump={settingsJump}
         open={settingsOpen}
         settings={settings}
         vaultName={vault.name}
@@ -392,9 +472,19 @@ export default function App() {
         theme={effective.theme}
         canvasBg={effective.canvasBg}
       />
+      {!splash && !incoming && viewMode === 'canvas' && <FirstHints />}
       {incoming && !splash && <ShareOpenDialog link={incoming} onOpen={openSharedBoard} onCancel={() => setIncoming(null)} />}
       {splash && <SplashScreen onDone={hideSplash} />}
       <UpdateNotice currentVersion={pkg.version} />
+      <Toast />
+      <SaveStatusBanner
+        onOpenSettings={() => {
+          setSettingsJump((j) => ({ section: 'general', n: (j?.n ?? 0) + 1 }))
+          setSettingsOpen(true)
+        }}
+      />
+      {/* WCAG 4.1.3: changes (deleted, undone, linked…) are announced here — see features/announce.ts */}
+      <div id="sr-status" className="sr-only" role="status" aria-live="polite" />
     </LangContext.Provider>
   )
 }

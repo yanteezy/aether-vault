@@ -4,6 +4,7 @@ import { FontSizeControl } from './FontSizePicker'
 import { NoteFontPicker } from './FontPicker'
 import type { NoteImage } from '../features/images'
 import { useT } from '../i18n'
+import { TargetPicker, type PickTarget } from './TargetPicker'
 import './NoteMenu.css'
 
 const NOTE_MIN_W = 180
@@ -45,6 +46,9 @@ export interface NoteMenuActions {
   onBack: () => void
   onOpenInList: () => void
   onUnlink: () => void
+  /** Keyboard alternative to dragging a link: notes this one can be joined to. */
+  connectTargets: PickTarget[]
+  onConnect: (targetId: string) => void
   onDelete: () => void
   /** Photo: open a file dialog / adjust / change / remove. */
   onPickImage: () => void
@@ -75,6 +79,7 @@ export function NoteMenu({ note, at, linkCount, onClose, baseFontPx, autoTextDef
   const tr = useT()
   const ref = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState(at)
+  const [linking, setLinking] = useState(false)
   const [copied, setCopied] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -344,6 +349,12 @@ export function NoteMenu({ note, at, linkCount, onClose, baseFontPx, autoTextDef
       >
         <span>{note.locked ? tr('Відкріпити позицію') : tr('Закріпити позицію')}</span>
       </button>
+      <button className="note-menu__item" role="menuitem" aria-expanded={linking} onClick={() => setLinking((v) => !v)}>
+        <span>{tr('Зʼєднати з…')}</span>
+      </button>
+      {linking && (
+        <TargetPicker items={a.connectTargets} empty={tr('Немає нотаток для звʼязку')} onCancel={() => setLinking(false)} onPick={(id) => run(() => a.onConnect(id))()} />
+      )}
       <button className="note-menu__item" role="menuitem" disabled={!linkCount} onClick={run(a.onUnlink)}>
         <span>{tr('Від’єднати зв’язки')}</span>
         {linkCount > 0 && <span className="note-menu__count">{linkCount}</span>}

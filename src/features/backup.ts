@@ -15,6 +15,7 @@ import { DEFAULT_VAULT_ID, deleteVaultData, vaultKey } from '../hooks/vaultKeys'
 import type { AppSettings } from '../settings/settings'
 import type { Vault } from '../types/note'
 import { allIds, getImage, putImage } from './images'
+import { flush, getItem, removeItem, setItem } from './store'
 
 const P = 'aethel-vault:'
 export const BACKUP_EXT = 'aether'
@@ -48,13 +49,13 @@ export interface Backup {
 
 const read = <T,>(key: string): T | undefined => {
   try {
-    const raw = localStorage.getItem(P + key)
+    const raw = getItem(P + key)
     return raw == null ? undefined : (JSON.parse(raw) as T)
   } catch {
     return undefined
   }
 }
-const write = (key: string, value: unknown) => localStorage.setItem(P + key, JSON.stringify(value))
+const write = (key: string, value: unknown) => setItem(P + key, JSON.stringify(value))
 
 /** Workspaces as stored (the app may not have saved the list yet on a fresh install). */
 function storedVaults(): Vault[] {
@@ -148,10 +149,26 @@ export function summarize(b: Backup) {
 }
 
 /** Write the chosen sections into storage, then reload so every part of the app picks them up. */
-export async function applyBackup(b: Backup, sections: BackupSection[]) {
+export async function applyBackup(b: Backup, sections: BackupSection[], opts: { revert?: boolean } = {}) {
+  // open editors hand over their last changes first, so the snapshot below has them
+  await flush()
+  if (!opts.revert) {
+    // a way back: everything as it is now, kept until the next import
+    try {
+      write(BEFORE_IMPORT, await createBackup(BACKUP_SECTIONS))
+    } catch {
+      /* too big for the browser's storage — the import still goes ahead, only without the way back */
+    }
+  }
   // nothing may write the old in-memory state back over the imported data from here on
   suspendPersistence()
   let vaults = storedVaults()
+  if (opts.revert && b.notes) {
+    // back to exactly what was there: workspaces that came with the import go away
+    const keep = new Set(b.notes.vaults.map((v) => v.id))
+    for (const v of vaults) if (!keep.has(v.id)) deleteVaultData(v.id)
+    vaults = vaults.filter((v) => keep.has(v.id))
+  }
   let settings = read<Partial<AppSettings>>('settings') ?? {}
 
   if (sections.includes('notes') && b.notes) {
@@ -189,7 +206,23 @@ export async function applyBackup(b: Backup, sections: BackupSection[]) {
   }
   write('settings', settings)
   write('vaults', vaults)
+  if (opts.revert) removeItem(P + BEFORE_IMPORT)
+  write(IMPORT_DONE, { at: Date.now(), revert: !!opts.revert })
+  await flush()
   window.location.reload()
+}
+
+/** The state right before the last import (Settings → General → "Restore as before"). */
+export const BEFORE_IMPORT = 'before-import'
+/** Set by an import for the next launch: show "Imported · Undo" once. */
+export const IMPORT_DONE = 'import-done'
+export const hasPreImport = () => getItem(P + BEFORE_IMPORT) != null
+/** Put everything back as it was before the last import (the app reloads). */
+export async function revertImport() {
+  const raw = getItem(P + BEFORE_IMPORT)
+  if (!raw) return
+  const snap = JSON.parse(raw) as Backup
+  await applyBackup(snap, snap.sections, { revert: true })
 }
 
 /**

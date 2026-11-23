@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useT } from '../i18n'
+import { useFocusTrap } from '../hooks/useFocusTrap'
 import { openShareToken, type SharedBoard, type ShareToken } from '../features/share'
 import { Icon } from './ShareMenu'
 import './ShareMenu.css'
@@ -13,6 +14,8 @@ export function ShareOpenDialog({ link, onOpen, onCancel }: { link: ShareToken; 
   const [busy, setBusy] = useState(false)
   const [shake, setShake] = useState(false)
   const pwRef = useRef<HTMLInputElement>(null)
+  const dlgRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(dlgRef, true, link.encrypted ? '.share-open__input' : '.share-open__cta')
 
   // an open link is read at once; a locked one waits for the password
   useEffect(() => {
@@ -61,7 +64,7 @@ export function ShareOpenDialog({ link, onOpen, onCancel }: { link: ShareToken; 
   const n = board?.notes.length ?? 0
   return (
     <div className="share-open" onPointerDown={(e) => e.target === e.currentTarget && onCancel()}>
-      <div className={`share-open__dlg${shake ? ' is-shake' : ''}`} role="dialog" aria-modal="true" aria-label={tr('Відкрити дошку за посиланням')} onAnimationEnd={() => setShake(false)}>
+      <div ref={dlgRef} className={`share-open__dlg${shake ? ' is-shake' : ''}`} role="dialog" aria-modal="true" aria-label={tr('Відкрити дошку за посиланням')} onAnimationEnd={() => setShake(false)}>
         <div className="share-open__badge-top">
           <Icon name={link.encrypted ? 'lock' : 'share'} />
         </div>
@@ -94,8 +97,8 @@ export function ShareOpenDialog({ link, onOpen, onCancel }: { link: ShareToken; 
             <div className="share-open__shield">
               <Icon name="shield" />
               <div>
-                <b>Protected by Aether Secure Share</b>
-                <span>Encrypted with AES-256 · unlocks only with the password</span>
+                <b>{tr('Захищено Aether Secure Share')}</b>
+                <span>{tr('Зашифровано AES-256 · відкривається лише з паролем')}</span>
               </div>
             </div>
             <input

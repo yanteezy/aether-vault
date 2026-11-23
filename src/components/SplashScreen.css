@@ -34,3 +34,23 @@
   -webkit-user-drag: none;
   filter: drop-shadow(0 10px 30px rgba(34, 211, 238, 0.18));
 }
+
+/* later launches of the day: the logo, then a 0.6 s fade straight into the canvas */
+.splash--quick {
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 50% 50%, #141724 0%, #090a10 100%);
+  pointer-events: none;
+  animation: splash-quick 600ms ease-out 120ms both;
+}
+.splash__quick-logo {
+  width: 120px;
+  height: 120px;
+  animation: splash-quick-logo 720ms ease-out both;
+}
+@keyframes splash-quick {
+  to { opacity: 0; }
+}
+@keyframes splash-quick-logo {
+  to { transform: scale(0.86); opacity: 0.4; }
+}

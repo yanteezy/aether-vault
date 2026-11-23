@@ -1,4 +1,5 @@
-import { forwardRef } from 'react'
+import { forwardRef, useRef, useState } from 'react'
+import { CommandPalette, type PaletteCommand, type PaletteNote } from './CommandPalette'
 import { IS_MAC } from '../settings/settings'
 import { useT } from '../i18n'
 import './CommandDock.css'
@@ -17,6 +18,11 @@ interface CommandDockProps {
   onToggleDraw: () => void
   drawActive: boolean
   onFrame: () => void
+  /** Command palette: every action, matching notes, create. */
+  commands: PaletteCommand[]
+  noteMatches: PaletteNote[]
+  onPickNote: (id: string) => void
+  onCreateNote: (title: string) => void
 }
 
 export const CommandDock = forwardRef<HTMLInputElement, CommandDockProps>(function CommandDock(
@@ -34,12 +40,29 @@ export const CommandDock = forwardRef<HTMLInputElement, CommandDockProps>(functi
     onToggleDraw,
     drawActive,
     onFrame,
+    commands,
+    noteMatches,
+    onPickNote,
+    onCreateNote,
   },
   ref,
 ) {
   const tr = useT()
+  const [focused, setFocused] = useState(false)
+  const keyRef = useRef<((e: React.KeyboardEvent) => boolean) | null>(null)
+  const blur = () => (document.activeElement as HTMLElement | null)?.blur()
   return (
     <div className="command-dock glass-panel-strong">
+      <CommandPalette
+        open={focused}
+        query={query}
+        commands={commands}
+        notes={noteMatches}
+        onPickNote={onPickNote}
+        onCreate={onCreateNote}
+        onClose={blur}
+        keyRef={keyRef}
+      />
       <div className="command-dock__search">
         <svg className="command-dock__search-icon" viewBox="0 0 20 20" width="16" height="16">
           <circle cx="9" cy="9" r="6.5" stroke="currentColor" strokeWidth="1.6" fill="none" />
@@ -48,11 +71,15 @@ export const CommandDock = forwardRef<HTMLInputElement, CommandDockProps>(functi
         <input
           ref={ref}
           className="command-dock__input"
-          placeholder={tr('Шукайте або введіть назву нової нотатки…')}
+          placeholder={tr('Нотатки й дії — шукайте або створюйте…')}
           value={query}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           onChange={(e) => onQueryChange(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') onSubmit()
+            if (keyRef.current?.(e)) return
+            if (e.key === 'Escape') blur()
+            else if (e.key === 'Enter') onSubmit()
           }}
         />
         <kbd className="command-dock__kbd">{IS_MAC ? '⌘K' : 'Ctrl K'}</kbd>

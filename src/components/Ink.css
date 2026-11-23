@@ -248,3 +248,28 @@ body[data-theme='mono'] .ink-toolbar__tool.is-active { color: var(--accent); }
 }
 .ink-palette__custom input::-webkit-color-swatch-wrapper { padding: 0; }
 .ink-palette__custom input::-webkit-color-swatch { border: 0; border-radius: 7px; }
+
+/* drawing mode indicator: a thin frame in the brush colour around the board, with a small label */
+.ink-mode-frame {
+  position: fixed;
+  inset: 44px 0 0 0;
+  z-index: 54;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ink-mode, #fff) 70%, transparent);
+  animation: ink-mode-in 160ms ease-out;
+}
+.ink-mode-frame__label {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(20, 20, 22, 0.82);
+  color: #f2f2f5;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 0 0 1.5px var(--ink-mode, #fff);
+}
+@keyframes ink-mode-in { from { opacity: 0; } }

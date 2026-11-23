@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { check, type Update } from '@tauri-apps/plugin-updater'
 import { relaunch } from '@tauri-apps/plugin-process'
+import { flush } from '../features/store'
 import { useT } from '../i18n'
 import './UpdateNotice.css'
 
@@ -77,6 +78,8 @@ export function UpdateNotice({ currentVersion }: { currentVersion: string }) {
         setState({ kind: 'downloading', version, done, total })
       })
       setState({ kind: 'restarting', version })
+      // the last changes go to disk before the app restarts
+      await Promise.race([flush(), new Promise((r) => window.setTimeout(r, 4000))])
       await relaunch()
     } catch (e) {
       setState({ kind: 'error', message: String((e as Error)?.message ?? e) })

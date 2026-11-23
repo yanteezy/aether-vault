@@ -283,3 +283,69 @@
   from { opacity: 0; transform: scale(0.9); max-width: 0; min-width: 0; }
   to { max-width: 200px; }
 }
+
+/* =====================================================================
+   Redesign (0.2.22) — clear hierarchy in the top bar:
+   tabs on the left · the view switch in the centre · quiet tools + ONE primary action on the right.
+   ===================================================================== */
+.top-bar__left { max-width: calc(50% - 120px); }
+.top-bar__center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+.top-bar__right { margin-left: auto; gap: 12px; }
+
+/* tools: share + settings sit together, without their own frames — present, not loud */
+.top-bar__tools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 12px;
+  background: var(--chrome-fill);
+  border: 0.5px solid var(--chrome-border, rgba(255, 255, 255, 0.08));
+}
+.top-bar__tools .top-bar__icon-btn {
+  width: 30px;
+  height: 28px;
+  border-radius: 9px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  color: var(--text-secondary);
+}
+.top-bar__tools .top-bar__icon-btn:hover { background: var(--chrome-fill-hover); color: var(--text-primary); }
+.top-bar__tools .top-bar__icon-btn.is-active { background: color-mix(in srgb, var(--accent) 24%, transparent); color: var(--text-primary); }
+
+/* the one primary action */
+.top-bar .top-bar__new-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 14px 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 650;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 32%, transparent), inset 0 0.5px 0 rgba(255, 255, 255, 0.25);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.top-bar .top-bar__new-note:hover {
+  background: var(--accent);
+  color: #fff;
+  filter: brightness(1.1);
+  transform: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent), 0 8px 22px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.top-bar .top-bar__new-note:active { filter: brightness(0.94); transform: scale(0.98); }
+
+/* the view switch: same height as the tools so the bar reads as one line */
+.top-bar__center .top-bar__view { height: 32px; align-items: center; }
+.top-bar__center .top-bar__view button { height: 26px; }

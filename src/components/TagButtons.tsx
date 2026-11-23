@@ -6,6 +6,17 @@ import { useT } from '../i18n'
 import './TagButtons.css'
 
 /** Ready-made tag buttons in the Tags panel — defined with their effects in effects/tagEffects. */
+/** Spoken / tooltip names of the button colours. */
+const COLOR_NAMES: Partial<Record<ChipColor, string>> = {
+  accent: 'Акцентний',
+  red: 'Червоний',
+  amber: 'Бурштиновий',
+  green: 'Зелений',
+  blue: 'Синій',
+  purple: 'Фіолетовий',
+  gray: 'Сірий',
+}
+
 export { TAG_PRESETS }
 
 const CUSTOM_COLORS: ChipColor[] = ['accent', 'red', 'amber', 'green', 'blue', 'purple', 'gray']
@@ -157,7 +168,9 @@ export function TagPanel({ noteTags, activeFilters, onToggleFilter, onPlace, onD
               role="radio"
               aria-checked={customColor === c}
               className={`tag-panel__color${customColor === c ? ' is-active' : ''}`}
-              style={{ background: CHIP_COLORS[c] }}
+              style={{ backgroundColor: CHIP_COLORS[c] }}
+              aria-label={tr(COLOR_NAMES[c] ?? c)}
+              title={tr(COLOR_NAMES[c] ?? c)}
               onClick={() => setCustomColor(c)}
             />
           ))}
@@ -500,6 +513,25 @@ export function TagChipLayer({
             }
             role="switch"
             aria-checked={on}
+            aria-label={c.tag}
+            // keyboard: Tab to it, Enter / Space switches it, Shift+F10 / Menu key opens its menu, arrows move it
+            tabIndex={0}
+            onFocus={(e) => {
+              if (e.target === e.currentTarget && e.currentTarget.matches(':focus-visible') && selectedId !== c.id && !selectedIds?.includes(c.id)) onSelect(c.id)
+            }}
+            onKeyDown={(e) => {
+              if (e.target !== e.currentTarget) return
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                e.stopPropagation()
+                onClick(c)
+              } else if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
+                e.preventDefault()
+                e.stopPropagation()
+                const r = e.currentTarget.getBoundingClientRect()
+                onContextMenu(c.id, r.left + r.width / 2, r.bottom)
+              }
+            }}
             title={
               wired
                 ? tr('Клік — увімкнути чи вимкнути ефект «{fx}»', { fx: tr(fx.label) })
@@ -522,6 +554,7 @@ export function TagChipLayer({
             />
             <button
               className="tag-chip__remove"
+              tabIndex={-1}
               aria-label={tr('Прибрати кнопку')}
               title={tr('Прибрати кнопку')}
               onPointerDown={(e) => e.stopPropagation()}

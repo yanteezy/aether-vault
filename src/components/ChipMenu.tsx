@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { CHIP_SCALE_MAX, CHIP_SCALE_MIN, chipScale, type TagChip } from '../types/note'
 import { chipEffect, effectInfo, presetFor, TAG_EFFECTS } from '../effects/tagEffects'
 import { useT } from '../i18n'
+import { TargetPicker, type PickTarget } from './TargetPicker'
 import './NoteMenu.css'
 import './ChipMenu.css'
 
@@ -9,6 +10,9 @@ export interface ChipMenuActions {
   onPatch: (patch: Partial<TagChip>) => void
   onToggle: () => void
   onUnwire: () => void
+  /** Keyboard alternative to dragging a cable: notes / frames it can be wired to. */
+  wireTargets: PickTarget[]
+  onWire: (targetId: string) => void
   onDelete: () => void
 }
 
@@ -25,6 +29,7 @@ export function ChipMenu({ chip, at, wireCount, onClose, ...a }: Props) {
   const tr = useT()
   const ref = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState(at)
+  const [wiring, setWiring] = useState(false)
   const preset = presetFor(chip.tag)
   const effect = chipEffect(chip)
   const pct = Math.round(chipScale(chip) * 100)
@@ -144,6 +149,12 @@ export function ChipMenu({ chip, at, wireCount, onClose, ...a }: Props) {
       <button className="note-menu__item" role="menuitemcheckbox" aria-checked={!!chip.on} disabled={!wireCount} onClick={run(a.onToggle)}>
         <span>{chip.on ? tr('Вимкнути ефект') : tr('Увімкнути ефект')}</span>
       </button>
+      <button className="note-menu__item" role="menuitem" aria-expanded={wiring} onClick={() => setWiring((v) => !v)}>
+        <span>{tr('Підʼєднати до…')}</span>
+      </button>
+      {wiring && (
+        <TargetPicker items={a.wireTargets} empty={tr('Немає нотаток чи рамок')} onCancel={() => setWiring(false)} onPick={(id) => run(() => a.onWire(id))()} />
+      )}
       <button className="note-menu__item" role="menuitem" disabled={!wireCount} onClick={run(a.onUnwire)}>
         <span>{tr('Від’єднати проводку')}</span>
         {wireCount > 0 && <span className="note-menu__count">{wireCount}</span>}

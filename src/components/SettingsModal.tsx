@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { useFocusTrap } from '../hooks/useFocusTrap'
 import {
   ACCENT_PRESETS,
   DEFAULT_SETTINGS,
@@ -20,9 +21,10 @@ import { LANGS, useT, type Lang } from '../i18n'
 import { requestUpdateCheck } from './UpdateNotice'
 import { NoteFontPicker } from './FontPicker'
 import { BackupPanel } from './BackupPanel'
+import { DataFolderPanel } from './DataFolderPanel'
 import './SettingsModal.css'
 
-type Section = 'general' | 'design' | 'shortcuts' | 'about'
+export type Section = 'general' | 'design' | 'shortcuts' | 'about'
 
 const SECTIONS: { id: Section; label: string }[] = [
   { id: 'general', label: 'Загальні' },
@@ -46,12 +48,19 @@ interface SettingsModalProps {
   /** Background of this workspace while it has its own theme. */
   vaultCanvasBg?: CanvasBg
   onVaultCanvasBg: (bg: CanvasBg) => void
+  /** Open on this section (changes each time it is set, e.g. the save error bar → General). */
+  jump?: { section: Section; n: number }
 }
 
-export function SettingsModal({ open, settings, vaultName, onRenameVault, onChange, onClose, onOpenGuide, vaultTheme, onVaultTheme, vaultCanvasBg, onVaultCanvasBg }: SettingsModalProps) {
+export function SettingsModal({ open, settings, vaultName, onRenameVault, onChange, onClose, onOpenGuide, vaultTheme, onVaultTheme, vaultCanvasBg, onVaultCanvasBg, jump }: SettingsModalProps) {
   const tr = useT()
   const [section, setSection] = useState<Section>('design')
+  useEffect(() => {
+    if (jump) setSection(jump.section)
+  }, [jump])
   const [recording, setRecording] = useState(false)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(dialogRef, open, '.settings__nav-item.is-active')
   useEffect(() => {
     if (!open || section !== 'shortcuts') setRecording(false)
   }, [open, section])
@@ -94,11 +103,13 @@ export function SettingsModal({ open, settings, vaultName, onRenameVault, onChan
   return (
     <div
       className={`settings-overlay${open ? ' is-open' : ''}`}
+      // closed = invisible: keep it out of Tab order and screen readers too
+      inert={!open}
       onPointerDown={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
     >
-      <div className="settings glass-panel-strong" role="dialog" aria-label={tr('Налаштування')}>
+      <div ref={dialogRef} className="settings glass-panel-strong" role="dialog" aria-modal="true" aria-label={tr('Налаштування')}>
         <nav className="settings__nav">
           <div className="settings__nav-title">{tr('Налаштування')}</div>
           {SECTIONS.map((s) => (
@@ -149,7 +160,12 @@ export function SettingsModal({ open, settings, vaultName, onRenameVault, onChan
               </Row>
             </div>
           )}
-          {section === 'general' && <BackupPanel />}
+          {section === 'general' && (
+            <>
+              <DataFolderPanel />
+              <BackupPanel />
+            </>
+          )}
 
           {section === 'design' && (
             <>
@@ -342,6 +358,8 @@ export function SettingsModal({ open, settings, vaultName, onRenameVault, onChan
                 [tr('Колесо / два пальці / щипок'), 'Масштаб полотна'],
                 [tr('Перетягування порожнього місця'), 'Переміщення полотна'],
                 [tr('Затиснута середня кнопка миші'), 'Переміщення полотна будь-де'],
+                ['P', 'Малювати (Esc — вийти)'],
+                [tr('утримати {key}', { key: 'P' }), 'Малювати, поки тримаєте клавішу'],
                 [IS_MAC ? '⇧⌘C' : 'Ctrl+Shift+C', 'Скопіювати посилання на дошку'],
                 [IS_MAC ? '⌘V' : 'Ctrl+V', 'Вставити посилання на дошку — відкрити її'],
                 [tr('⇧ + колесо'), 'Прокрутка вбік'],
@@ -378,8 +396,12 @@ export function SettingsModal({ open, settings, vaultName, onRenameVault, onChan
   )
 }
 
+/** The row's label names the control inside it for screen readers (sliders, switches have no text of their own). */
+const RowLabel = createContext('')
+
 function Row({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
+    <RowLabel.Provider value={label}>
     <div className="settings__row">
       <div className="settings__label">
         {label}
@@ -387,13 +409,16 @@ function Row({ label, hint, children }: { label: string; hint?: string; children
       </div>
       <div className="settings__control">{children}</div>
     </div>
+    </RowLabel.Provider>
   )
 }
 
 function Slider(props: { min: number; max: number; step: number; value: number; onChange: (v: number) => void }) {
+  const label = useContext(RowLabel)
   return (
     <input
       type="range"
+      aria-label={label || undefined}
       className="settings__slider"
       min={props.min}
       max={props.max}
@@ -405,10 +430,12 @@ function Slider(props: { min: number; max: number; step: number; value: number; 
 }
 
 function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+  const label = useContext(RowLabel)
   return (
     <button
       role="switch"
       aria-checked={value}
+      aria-label={label || undefined}
       className={`settings__toggle${value ? ' is-on' : ''}`}
       onClick={() => onChange(!value)}
     >

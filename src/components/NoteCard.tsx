@@ -265,6 +265,28 @@ export function NoteCard({
       data-fx={fx?.length ? fx.map((f) => f.effect).join(' ') : undefined}
       data-font={note.font && note.font !== 'auto' ? note.font : undefined}
       draggable={false}
+      // keyboard: one Tab stop per note; Enter edits, Shift+F10 / Menu key opens its menu, arrows move it
+      tabIndex={isEditing ? -1 : 0}
+      role="group"
+      aria-roledescription={tr('нотатка')}
+      aria-label={note.title || tr('Нотатка без назви')}
+      onFocus={(e) => {
+        // keyboard focus only — a mouse click selects on its own (and Ctrl+click must not reset a multi-selection)
+        if (e.target === e.currentTarget && e.currentTarget.matches(':focus-visible') && !selected && !inGroup) onSelect(note.id)
+      }}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return
+        if (e.key === 'Enter' || e.key === 'F2') {
+          e.preventDefault()
+          e.stopPropagation()
+          onStartEdit(note.id, 'title')
+        } else if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
+          e.preventDefault()
+          e.stopPropagation()
+          const r = e.currentTarget.getBoundingClientRect()
+          onContextMenu(note.id, r.left + Math.min(r.width / 2, 120), r.top + Math.min(r.height / 2, 60))
+        }
+      }}
       onContextMenu={(e) => {
         e.preventDefault()
         e.stopPropagation()
@@ -311,7 +333,9 @@ export function NoteCard({
           type="button"
           className={`note-card__handle note-card__handle--${side}${edge === side ? ' is-visible' : ''}`}
           data-no-drag
-          aria-label={`Connect from ${side}`}
+          // pointer-only grip: keyboard users link notes from the note menu ("Зʼєднати з…")
+          tabIndex={-1}
+          aria-hidden="true"
           onPointerDown={(e) => {
             if (e.button !== 0) return
             e.stopPropagation()

@@ -163,6 +163,10 @@ export function applySettings(s: AppSettings) {
   root.setProperty('--accent', s.accent)
   root.setProperty('--accent-rgb', `${r}, ${g}, ${b}`)
   root.setProperty('--accent-soft', `rgba(${r}, ${g}, ${b}, 0.18)`)
+  // filled buttons need readable text whatever accent was picked (WCAG 1.4.3: 4.5:1)
+  const fill = accentFill(r, g, b)
+  root.setProperty('--accent-fill', fill.bg)
+  root.setProperty('--on-accent', fill.fg)
   root.setProperty('--glass-blur', `${s.glassBlur}px`)
   root.setProperty('--glass-bg', `rgba(30, 31, 40, ${s.cardOpacity})`)
   root.setProperty('--card-opacity', `${s.cardOpacity}`)
@@ -183,4 +187,22 @@ export function applySettings(s: AppSettings) {
   document.body.dataset.canvasBg = themeHasCanvasBg(s.theme) && CANVAS_BGS.some((b) => b.id === s.canvasBg) ? s.canvasBg : 'default'
   document.body.dataset.noteFont = s.noteFont || 'auto'
   root.setProperty('--note-font-global', fontStack(s.noteFont) || 'inherit')
+}
+
+/** Relative luminance (WCAG). */
+const lum = (r: number, g: number, b: number) => {
+  const f = (v: number) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b)
+}
+const ratio = (a: number, b: number) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
+/**
+ * The fill for accent-coloured buttons: the accent darkened just enough for white text to reach 4.5:1;
+ * light accents (yellow, mint) that would turn muddy keep their colour and get near-black text instead.
+ */
+export function accentFill(r: number, g: number, b: number): { bg: string; fg: string } {
+  for (let k = 0; k <= 0.45; k += 0.02) {
+    const c = [r, g, b].map((v) => Math.round(v * (1 - k)))
+    if (ratio(1, lum(c[0], c[1], c[2])) >= 4.6) return { bg: `rgb(${c.join(', ')})`, fg: '#ffffff' }
+  }
+  return { bg: `rgb(${r}, ${g}, ${b})`, fg: ratio(lum(r, g, b), lum(17, 17, 20)) >= 4.6 ? '#111114' : '#000000' }
 }

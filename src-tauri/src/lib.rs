@@ -1,5 +1,7 @@
 use tauri::Manager;
 
+mod data;
+
 /// Save a backup (.aether) into the user's Downloads folder (Documents / home as fallbacks)
 /// without overwriting an existing file. Returns the full path of the saved file.
 #[tauri::command]
@@ -53,8 +55,27 @@ pub fn run() {
     .plugin(tauri_plugin_deep_link::init())
     // open links (YouTube, GitHub…) in the system browser
     .plugin(tauri_plugin_opener::init())
+    // the data folder picker (Settings → General → Data folder)
+    .plugin(tauri_plugin_dialog::init())
+    // notes, settings and photos as files in the data folder
+    .manage(data::DataDir::default())
     // backups: Settings → General → Export
-    .invoke_handler(tauri::generate_handler![save_backup])
+    .invoke_handler(tauri::generate_handler![
+      save_backup,
+      data::data_load,
+      data::data_ready,
+      data::data_write,
+      data::data_remove,
+      data::image_write,
+      data::image_read,
+      data::image_delete,
+      data::image_list,
+      data::data_pick_dir,
+      data::data_default_dir,
+      data::data_inspect_dir,
+      data::data_set_dir,
+      data::data_use_default
+    ])
     .setup(|app| {
       // Windows / Linux: make sure aether:// points at this copy of the app (macOS reads it from Info.plist)
       #[cfg(any(windows, target_os = "linux"))]

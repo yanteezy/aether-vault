@@ -143,7 +143,7 @@ export function InkToolbar({ tool, color, recent, onTool, onColor, canUndo, hasS
       <div className="ink-toolbar__sep" />
 
       <div className="ink-toolbar__group">
-        <button className="ink-toolbar__tool" title={tr('Скасувати') + (IS_MAC ? ' (⌘Z)' : ' (Ctrl+Z)')} disabled={!canUndo} onClick={onUndo}>
+        <button className="ink-toolbar__tool" title={tr('Скасувати дію') + (IS_MAC ? ' (⌘Z)' : ' (Ctrl+Z)')} disabled={!canUndo} onClick={onUndo}>
           <ToolIcon kind="undo" />
           <span>{tr('Назад')}</span>
         </button>

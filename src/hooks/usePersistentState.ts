@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { getItem, setItem } from '../features/store'
 
 const STORAGE_PREFIX = 'aethel-vault:'
 
@@ -17,7 +18,7 @@ export function usePersistentState<T>(key: string, initial: T) {
   const storageKey = STORAGE_PREFIX + key
   const [value, setValue] = useState<T>(() => {
     try {
-      const raw = localStorage.getItem(storageKey)
+      const raw = getItem(storageKey)
       return raw !== null ? (JSON.parse(raw) as T) : initial
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch {
@@ -36,9 +37,9 @@ export function usePersistentState<T>(key: string, initial: T) {
     const write = () => {
       if (suspended) return
       try {
-        localStorage.setItem(storageKey, JSON.stringify(latest.current))
+        setItem(storageKey, JSON.stringify(latest.current))
       } catch {
-        /* storage unavailable, ignore */
+        /* reported by the store (save status banner) */
       }
     }
     const t = window.setTimeout(() => {
@@ -46,10 +47,13 @@ export function usePersistentState<T>(key: string, initial: T) {
       write()
     }, 200)
     window.addEventListener('beforeunload', write)
+    // closing the window / relaunching after an update / importing: hand the change over right away
+    window.addEventListener('aether:flush', write)
     pending.current = write
     return () => {
       window.clearTimeout(t)
       window.removeEventListener('beforeunload', write)
+      window.removeEventListener('aether:flush', write)
     }
   }, [value, storageKey])
 

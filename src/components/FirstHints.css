@@ -1,0 +1,66 @@
+/* one-time tips above the dock — same panel and buttons as the rest of the redesign */
+.first-hint {
+  position: fixed;
+  left: 50%;
+  bottom: 122px;
+  z-index: 60;
+  display: flex;
+  gap: 12px;
+  width: min(420px, calc(100vw - 32px));
+  padding: 14px 14px 12px;
+  border-radius: var(--menu-radius, 14px);
+  background: linear-gradient(var(--glass-bg-strong), var(--glass-bg-strong)), var(--bg-canvas);
+  border: 1px solid var(--glass-border-strong);
+  box-shadow: 0 22px 50px rgba(0, 0, 0, 0.42), inset 0 0.5px 0 rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  transform: translateX(-50%);
+  animation: hint-in 320ms var(--spring);
+}
+@keyframes hint-in {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+}
+/* a small pointer towards the dock */
+.first-hint::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -7px;
+  width: 12px;
+  height: 12px;
+  background: inherit;
+  border-right: 1px solid var(--glass-border-strong);
+  border-bottom: 1px solid var(--glass-border-strong);
+  transform: translateX(-50%) rotate(45deg);
+}
+.first-hint__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--accent);
+}
+.first-hint__body { flex: 1; min-width: 0; }
+.first-hint__title { font-size: 14px; font-weight: 650; }
+.first-hint__text { margin-top: 3px; font-size: 12.5px; line-height: 1.5; color: var(--text-secondary); }
+.first-hint__row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.first-hint__dots { display: flex; gap: 5px; margin-right: auto; }
+.first-hint__dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--chrome-fill-hover); transition: background 200ms, width 200ms; }
+.first-hint__dots i.is-on { width: 16px; border-radius: 3px; background: var(--accent); }
+.first-hint__skip,
+.first-hint__next {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms, filter 150ms, color 150ms;
+}
+.first-hint__skip { background: none; color: var(--text-secondary); }
+.first-hint__skip:hover { background: var(--chrome-fill-hover); color: var(--text-primary); }
+.first-hint__next { background: var(--accent); color: #fff; }
+.first-hint__next:hover { filter: brightness(1.1); color: #fff; }

@@ -247,3 +247,16 @@
 .share-open__cancel:hover { background: var(--chrome-fill-hover); color: var(--text-primary); }
 .share-open__list { margin: 14px 0 2px; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
 .share-open__chip { padding: 4px 9px; border-radius: 999px; font-size: 11.5px; background: var(--chrome-fill); color: var(--text-secondary); }
+
+/* expected link length, shown before copying */
+.share-menu__size {
+  margin: -2px 4px 4px;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+.share-menu__size.is-long { color: #ffb340; }
+body[data-theme='light'] .share-menu__size.is-long { color: #8a5300; }
+.share-menu__row.is-suggested {
+  box-shadow: inset 0 0 0 1.5px #ffb340;
+}
+body[data-theme='light'] .share-menu__row.is-suggested { box-shadow: inset 0 0 0 1.5px #b26b00; }

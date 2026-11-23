@@ -6,6 +6,8 @@ import {
   BACKUP_SECTIONS,
   backupFileName,
   createBackup,
+  hasPreImport,
+  revertImport,
   parseBackup,
   revealFile,
   saveBackupFile,
@@ -66,6 +68,7 @@ export function BackupPanel() {
   const [pending, setPending] = useState<{ backup: Backup; name: string } | null>(null)
   const [importSel, setImportSel] = useState<BackupSection[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
+  const [canRevert] = useState(hasPreImport)
 
   const doExport = async () => {
     setBusy(true)
@@ -142,6 +145,22 @@ export function BackupPanel() {
             <button className="backup__btn" disabled={busy} onClick={() => fileRef.current?.click()}>
               {tr('Імпортувати…')}
             </button>
+            {canRevert && (
+              <button
+                className="backup__btn"
+                disabled={busy}
+                title={tr('Усе, як було перед останнім імпортом')}
+                onClick={() => {
+                  setBusy(true)
+                  revertImport().catch(() => {
+                    setBusy(false)
+                    setError(tr('Не вдалося повернути дані'))
+                  })
+                }}
+              >
+                {tr('Повернути як було до імпорту')}
+              </button>
+            )}
           </div>
         ) : (
           <div className="backup__confirm">
@@ -160,7 +179,7 @@ export function BackupPanel() {
             </div>
             <Checks value={importSel} onChange={setImportSel} only={pending.backup.sections} />
             {importSel.includes('notes') && (
-              <p className="backup__warn">{tr('Сховища з файлу замінять однойменні сховища тут (перше сховище — завжди «Aether»). Інші сховища залишаться.')}</p>
+              <p className="backup__warn">{tr('Сховища з файлу замінять однойменні сховища тут (перше сховище — завжди «Aether»). Інші сховища залишаться.')} {tr('Поточний стан збережеться — його можна буде повернути.')}</p>
             )}
             <div className="backup__actions">
               <button className="backup__btn backup__btn--primary" disabled={busy || !importSel.length} onClick={doImport}>

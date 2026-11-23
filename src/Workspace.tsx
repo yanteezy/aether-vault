@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CanvasBoard } from './components/CanvasBoard'
 import { CommandDock } from './components/CommandDock'
+import { coachKey, coachMouse } from './features/coach'
 import type { ViewMode } from './components/TopBar'
 import { SidePanel } from './components/SidePanel'
 import { QuickSearch } from './components/QuickSearch'
@@ -8,7 +9,7 @@ import { RadialMenu, radialIndex, type RadialItem } from './components/RadialMen
 import { NotesList } from './components/NotesList'
 import { NoteMenu } from './components/NoteMenu'
 import { OPPOSITE, type Point } from './components/geometry'
-import { THEMES, isRadialKey, keyGlyph, type AppSettings, type ThemeId } from './settings/settings'
+import { IS_MAC, THEMES, isRadialKey, keyGlyph, type AppSettings, type ThemeId } from './settings/settings'
 import { useCanvasTransform } from './hooks/useCanvasTransform'
 import { usePersistentState } from './hooks/usePersistentState'
 import { DEFAULT_VAULT_ID, vaultKey } from './hooks/vaultKeys'
@@ -18,7 +19,7 @@ import { INK_RECENT_DEFAULT, pushRecentInk } from './types/note'
 import { TagChipLayer, TagPanel, snapTo, type ChipDrop } from './components/TagButtons'
 import { GRID } from './settings/settings'
 import { getLang, useT } from './i18n'
-import { InkCapture, InkLayer, strokeBounds } from './components/Ink'
+import { InkCapture, InkLayer, inkStroke, strokeBounds } from './components/Ink'
 import { InkToolbar } from './components/InkToolbar'
 import { FrameLayer } from './components/Frames'
 import { FrameMenu } from './components/FrameMenu'
@@ -27,6 +28,8 @@ import { chipEffect, type ObjectFx } from './effects/tagEffects'
 import { importImage, isImageFile, type NoteImage } from './features/images'
 import { describeLink, parseUrl } from './features/links'
 import { parseShareLink } from './features/share'
+import { announce } from './features/announce'
+import type { PaletteCommand, PaletteNote } from './components/CommandPalette'
 import { CHIP_COLORS } from './types/note'
 import { RadialIcon } from './components/RadialIcons'
 
@@ -103,6 +106,8 @@ interface WorkspaceProps {
   onSetTheme?: (theme: ThemeId) => void
   /** An Aether board link was pasted on the canvas. */
   onShareLink?: (text: string) => void
+  /** Open the Share popover (command palette). */
+  onOpenShare?: () => void
 }
 
 /** Everything that belongs to one vault. Re-mounted (key) when the vault changes. */
@@ -121,8 +126,11 @@ export function Workspace({
   tabCount = 1,
   onSetTheme,
   onShareLink,
+  onOpenShare,
 }: WorkspaceProps) {
   const tr = useT()
+  const trRef = useRef(tr)
+  trRef.current = tr
   const isFirst = vault.id === DEFAULT_VAULT_ID
   // fresh first vault (or «Settings → Guide»): starts with the feature guide
   const [guide] = useState(() =>
@@ -466,6 +474,7 @@ export function Workspace({
   const createNote = useCallback(
     (title: string) => {
       const c = toWorld({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+      announce(trRef.current('Нову нотатку створено'))
       return addNote(title, { x: c.x - W / 2, y: c.y - H / 2 })
     },
     [addNote, toWorld],
@@ -486,6 +495,7 @@ export function Workspace({
     const ids = selectedIdsRef.current
     const g = groupSelRef.current
     if (!ids.size && !groupLen(g)) return
+    announce(trRef.current('Видалено: {n}. {mod}Z — повернути', { n: ids.size + groupLen(g), mod: IS_MAC ? '⌘' : 'Ctrl+' }))
     setNotes((prev) => prev.filter((n) => !ids.has(n.id)))
     setStrokes((prev) => prev.filter((st) => !(st.note && ids.has(st.note)) && !g.strokes.includes(st.id)))
     setConnections((prev) => prev.filter((c) => !ids.has(c.from) && !ids.has(c.to)))
@@ -743,6 +753,7 @@ export function Workspace({
     if (!prev) return
     h.future.push(liveSnapRef.current)
     applySnap(prev)
+    announce(trRef.current('Скасовано'))
   }
   const redo = () => {
     const h = history.current
@@ -750,6 +761,7 @@ export function Workspace({
     if (!next) return
     h.past.push(liveSnapRef.current)
     applySnap(next)
+    announce(trRef.current('Повторено'))
   }
   const undoRef = useRef(undo)
   undoRef.current = undo
@@ -807,6 +819,61 @@ export function Workspace({
   }
 
   // ---------- middle mouse button: always moves the camera (over notes, frames, buttons too) ----------
+  /**
+   * P: tap = drawing mode (stays on, Esc leaves); hold = drawing only while the key is held (spring-loaded),
+   * so a quick mark never leaves the board in a mode. A stroke in progress is finished before it lets go.
+   */
+  const springAt = useRef<number | null>(null)
+  const SPRING_HOLD = 250
+  const [springHeld, setSpringHeld] = useState(false)
+  useEffect(() => {
+    const HOLD = SPRING_HOLD
+    let pointers = 0
+    let exitAfterStroke = false
+    const exit = () => {
+      setDrawing(false)
+      setSpringHeld(false)
+    }
+    const up = (e: KeyboardEvent) => {
+      if (e.code !== 'KeyP' || springAt.current === null) return
+      const held = Date.now() - springAt.current
+      springAt.current = null
+      if (held < HOLD) return setSpringHeld(false) // a tap: the mode stays on
+      if (pointers > 0) exitAfterStroke = true
+      else exit()
+    }
+    const pdown = () => void pointers++
+    const pup = () => {
+      pointers = Math.max(0, pointers - 1)
+      if (exitAfterStroke && !pointers) {
+        exitAfterStroke = false
+        window.setTimeout(exit, 0)
+      }
+    }
+    const blur = () => {
+      if (springAt.current !== null && Date.now() - springAt.current >= HOLD) exit()
+      springAt.current = null
+    }
+    window.addEventListener('keyup', up, true)
+    window.addEventListener('pointerdown', pdown, true)
+    window.addEventListener('pointerup', pup, true)
+    window.addEventListener('pointercancel', pup, true)
+    window.addEventListener('blur', blur)
+    return () => {
+      window.removeEventListener('keyup', up, true)
+      window.removeEventListener('pointerdown', pdown, true)
+      window.removeEventListener('pointerup', pup, true)
+      window.removeEventListener('pointercancel', pup, true)
+      window.removeEventListener('blur', blur)
+    }
+  }, [])
+  useEffect(() => {
+    if (!drawing) {
+      springAt.current = null
+      setSpringHeld(false)
+    }
+  }, [drawing])
+
   const drawingRef = useRef(drawing)
   drawingRef.current = drawing
   const panFns = useRef({ startPan, panTo, endPan })
@@ -1188,6 +1255,32 @@ export function Workspace({
   // ---------- keyboard ----------
   const overlayOpen = settingsOpen || searchOpen
   const pasteFallback = useRef<number | undefined>(undefined)
+  // ---------- keyboard: arrows move the selection (WCAG 2.5.7 — an alternative to dragging) ----------
+  const nudgeRef = useRef<(ux: number, uy: number, big: boolean) => boolean>(() => false)
+  nudgeRef.current = (ux, uy, big) => {
+    const step = big ? GRID[settings.grid]?.size || 24 : 8
+    const dx = ux * step
+    const dy = uy * step
+    const g = groupSelRef.current
+    // the same machinery as dragging a group: frames take their contents, locked things stay
+    const temp: GroupSel = {
+      chips: [...new Set([...g.chips, ...(selectedChipId ? [selectedChipId] : [])])],
+      frames: [...new Set([...g.frames, ...(selectedFrameId ? [selectedFrameId] : [])])],
+      strokes: g.strokes,
+    }
+    const notesSel = [...selectedIdsRef.current]
+    const lead = notesSel[0] ?? temp.frames[0] ?? temp.chips[0] ?? temp.strokes[0]
+    if (!lead) return false
+    const saved = groupSelRef.current
+    groupSelRef.current = temp
+    groupDrag.current = null
+    beginGroupDrag(lead)
+    groupMoveBy(lead, dx, dy)
+    groupDrag.current = null
+    groupSelRef.current = saved
+    return true
+  }
+
   useEffect(() => {
     if (!active) return
     const onMove = (e: PointerEvent | MouseEvent) => {
@@ -1213,9 +1306,18 @@ export function Workspace({
         if (e.key === 'Escape') return
       }
       const mod = e.metaKey || e.ctrlKey
+      // arrows nudge the selection by 8 (Shift: one grid step)
+      if (!typing && !mod && !e.altKey && viewMode === 'canvas' && !overlayOpen && !menu && !frameMenu && !chipMenu && e.code.startsWith('Arrow')) {
+        const d = ({ ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] } as Record<string, number[]>)[e.code]
+        if (d && nudgeRef.current(d[0], d[1], e.shiftKey)) {
+          e.preventDefault()
+          return
+        }
+      }
       // physical keys (e.code), so shortcuts work on any keyboard layout (Ukrainian «в» is still KeyD)
       if (mod && e.code === 'KeyK') {
         e.preventDefault()
+        coachKey('palette')
         if (viewMode === 'canvas') {
           dockInputRef.current?.focus()
           dockInputRef.current?.select()
@@ -1243,8 +1345,19 @@ export function Workspace({
         }
         if (e.key === ' ') return // held Space = pan while drawing
       }
+      // P outside drawing: start drawing with the pen (tap keeps it on, hold = only while held — see springAt)
+      if (!drawing && viewMode === 'canvas' && !mod && !e.altKey && !e.shiftKey && e.code === 'KeyP' && !e.repeat && !menu && !frameMenu && !chipMenu) {
+        e.preventDefault()
+        coachKey('draw')
+        const at = (springAt.current = Date.now())
+        window.setTimeout(() => springAt.current === at && setSpringHeld(true), SPRING_HOLD)
+        setInkPrefs((p) => ({ ...p, tool: 'pen' }))
+        setDrawing(true)
+        return
+      }
       if (mod && e.code === 'KeyD') {
         e.preventDefault()
+        if (e.isTrusted) coachKey('duplicate')
         if (viewMode !== 'canvas') return
         // several objects (or a frame / button / drawing): duplicate the whole selection
         const clip = clipRef.current.collectSelection()
@@ -1279,6 +1392,7 @@ export function Workspace({
         return
       }
       if (e.key === 'Enter' && selectedId && viewMode === 'canvas') {
+        coachKey('edit')
         e.preventDefault()
         setEditing({ id: selectedId, focus: 'body' })
         return
@@ -1300,6 +1414,7 @@ export function Workspace({
         setSelectedFrameId(null)
       }
       if (e.key === 'Backspace' || e.key === 'Delete') {
+        coachKey('delete')
         if (selectedChipId && viewMode === 'canvas') {
           setChips((prev) => prev.filter((c) => c.id !== selectedChipId))
           setSelectedChipId(null)
@@ -1361,6 +1476,9 @@ export function Workspace({
       if (!a || a === document.body || !isTyping(a) || !t || a.contains(t) || isTyping(t)) return
       const ownNote = a.closest('[data-note-id]')
       if (ownNote && ownNote.contains(t)) return
+      // the dock field owns its command palette: clicking an item there must not close it first
+      const ownDock = a.closest('.command-dock')
+      if (ownDock && ownDock.contains(t)) return
       a.blur()
     }
     window.addEventListener('paste', paste)
@@ -1388,6 +1506,51 @@ export function Workspace({
     else createNote(trimmed)
     setQuery('')
   }, [query, notes, createNote, jumpTo])
+
+  // ---------- command palette (dock field, Ctrl/⌘K) ----------
+  const mod = IS_MAC ? '⌘' : 'Ctrl+'
+  const pressKey = (code: string, o: { shift?: boolean } = {}) => {
+    // reuse the real shortcut handlers, so the palette and the keyboard always do exactly the same thing
+    const k = code.replace('Key', '').toLowerCase()
+    window.setTimeout(() => document.body.dispatchEvent(new KeyboardEvent('keydown', { code, key: k, ctrlKey: !IS_MAC, metaKey: IS_MAC, shiftKey: !!o.shift, bubbles: true })), 0)
+  }
+  const nextTheme = THEMES[(THEMES.findIndex((t) => t.id === settings.theme) + 1) % THEMES.length]
+  const G = { create: tr('Створити'), view: tr('Вигляд'), edit: tr('Редагування'), app: tr('Застосунок') }
+  const paletteCommands: PaletteCommand[] = [
+    { id: 'new', group: G.create, label: tr('Нова нотатка'), keys: tr('2× клік'), words: 'note new створити', run: () => createNote('') },
+    { id: 'frame', group: G.create, label: tr('Рамка навколо виділеного'), words: 'frame group рамка', run: createFrame },
+    { id: 'draw', group: G.create, label: drawing ? tr('Завершити малювання') : tr('Малювати'), keys: 'P · M · E', words: 'draw ink pen малювання', run: () => setDrawing((v) => !v) },
+    { id: 'fit', group: G.view, label: tr('Вмістити все'), words: 'fit all zoom', disabled: viewMode !== 'canvas', run: fitAll },
+    { id: 'zoom', group: G.view, label: tr('Масштаб 100%'), words: 'zoom reset', disabled: viewMode !== 'canvas', run: () => setScale(1, window.innerWidth / 2, window.innerHeight / 2) },
+    { id: 'view', group: G.view, label: viewMode === 'canvas' ? tr('Вигляд: нотатки') : tr('Вигляд: полотно'), words: 'view list canvas список', run: () => setViewMode((m) => (m === 'canvas' ? 'list' : 'canvas')) },
+    { id: 'graph', group: G.view, label: tr('Граф звʼязків'), words: 'graph links', run: () => setGraphMode((v) => !v) },
+    { id: 'tags', group: G.view, label: tr('Теги й кнопки'), words: 'tags buttons chips', run: () => setTagsOpen((v) => !v) },
+    { id: 'vault', group: G.view, label: tr('Панель сховища'), words: 'vault panel files', run: () => setVaultOpen((v) => !v) },
+    { id: 'theme', group: G.view, label: tr('Тема: {name}', { name: tr(nextTheme.name) }), words: 'theme dark light тема', run: () => (onSetTheme ? onSetTheme(nextTheme.id) : patchSettings({ theme: nextTheme.id })) },
+    { id: 'all', group: G.edit, label: tr('Виділити все'), keys: `${mod}A`, words: 'select all', disabled: viewMode !== 'canvas', run: () => pressKey('KeyA') },
+    { id: 'dup', group: G.edit, label: tr('Дублювати виділене'), keys: `${mod}D`, words: 'duplicate copy', disabled: viewMode !== 'canvas', run: () => pressKey('KeyD') },
+    { id: 'undo', group: G.edit, label: tr('Скасувати дію'), keys: `${mod}Z`, words: 'undo back', run: undo },
+    { id: 'redo', group: G.edit, label: tr('Повторити'), keys: IS_MAC ? '⇧⌘Z' : 'Ctrl+Y', words: 'redo', run: redo },
+    { id: 'share', group: G.app, label: tr('Поширити дошку'), keys: IS_MAC ? '⇧⌘C' : 'Ctrl+Shift+C', words: 'share link посилання пароль', disabled: !onOpenShare, run: () => onOpenShare?.() },
+    { id: 'settings', group: G.app, label: tr('Налаштування'), keys: `${mod},`, words: 'settings preferences', run: onOpenSettings },
+    { id: 'tab-next', group: G.app, label: tr('Вкладка праворуч'), keys: 'Ctrl+Tab', words: 'tab next', disabled: tabCount < 2, run: () => onSwitchTab?.(1) },
+    { id: 'tab-prev', group: G.app, label: tr('Вкладка ліворуч'), keys: 'Ctrl+Shift+Tab', words: 'tab previous', disabled: tabCount < 2, run: () => onSwitchTab?.(-1) },
+  ]
+  const noteMatches: PaletteNote[] = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return []
+    const out: PaletteNote[] = []
+    for (const n of notes) {
+      const t = n.title.toLowerCase()
+      const body = n.body ?? ''
+      const b = body.toLowerCase()
+      if (!t.includes(q) && !b.includes(q)) continue
+      const at = b.indexOf(q)
+      out.push({ id: n.id, title: n.title, snippet: !t.includes(q) && at >= 0 ? '…' + body.slice(Math.max(0, at - 12), at + 28).replace(/\s+/g, ' ') + '…' : '' })
+      if (out.length >= 5) break
+    }
+    return out
+  }, [query, notes])
 
   const allTags = useMemo(() => {
     const set = new Set<string>()
@@ -1734,6 +1897,14 @@ export function Workspace({
           </CanvasBoard>
 
           {drawing && (
+            // the mode is impossible to miss: the board is framed in the brush colour
+            <div className="ink-mode-frame" style={{ ['--ink-mode' as string]: inkStroke(inkPrefs.color) }} aria-hidden="true">
+              <span className="ink-mode-frame__label">
+                {springHeld ? tr('Малювання — поки тримаєте P') : tr('Малювання · Esc — вийти')}
+              </span>
+            </div>
+          )}
+          {drawing && (
             <InkToolbar
               tool={inkPrefs.tool}
               color={inkPrefs.color}
@@ -1784,10 +1955,22 @@ export function Workspace({
             vaultActive={vaultOpen}
             onToggleDraw={() => {
               setMenu(null)
+              if (!drawing) coachMouse('draw')
               setDrawing((v) => !v)
             }}
             drawActive={drawing}
             onFrame={createFrame}
+            commands={paletteCommands}
+            noteMatches={noteMatches}
+            onPickNote={(id) => {
+              const n = notes.find((x) => x.id === id)
+              if (n) jumpTo(n)
+              setQuery('')
+            }}
+            onCreateNote={(title) => {
+              createNote(title)
+              setQuery('')
+            }}
           />
 
           {/* rendered inside the pane (like the dock) so it slides with its own vault and shows that vault's zoom */}
@@ -1834,8 +2017,14 @@ export function Workspace({
           baseFontPx={settings.cardFontSize}
           autoTextDefault={settings.autoTextSize}
           onPatch={(patch) => updateNote(menuNote.id, patch)}
-          onEdit={() => setEditing({ id: menuNote.id, focus: 'body' })}
-          onDuplicate={() => duplicateNote(menuNote.id)}
+          onEdit={() => {
+            coachMouse('edit')
+            setEditing({ id: menuNote.id, focus: 'body' })
+          }}
+          onDuplicate={() => {
+            coachMouse('duplicate')
+            duplicateNote(menuNote.id)
+          }}
           onCopyText={() => copyNoteText(menuNote.id)}
           onFront={() => reorderNote(menuNote.id, true)}
           onBack={() => reorderNote(menuNote.id, false)}
@@ -1844,7 +2033,25 @@ export function Workspace({
             setViewMode('list')
           }}
           onUnlink={() => setConnections((prev) => prev.filter((c) => c.from !== menuNote.id && c.to !== menuNote.id))}
-          onDelete={() => deleteNote(menuNote.id)}
+          connectTargets={notes
+            .filter((n) => n.id !== menuNote.id && !connections.some((c) => (c.from === menuNote.id && c.to === n.id) || (c.to === menuNote.id && c.from === n.id)))
+            .map((n) => ({ id: n.id, label: n.title }))}
+          onConnect={(to) => {
+            const a = menuNote
+            const b = notes.find((n) => n.id === to)
+            if (!b) return
+            // leave from the side that faces the other note
+            const dx = b.x + b.width / 2 - (a.x + a.width / 2)
+            const dy = b.y + b.height / 2 - (a.y + a.height / 2)
+            const side: Side = Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? 'right' : 'left') : dy >= 0 ? 'bottom' : 'top'
+            const opposite: Record<Side, Side> = { right: 'left', left: 'right', top: 'bottom', bottom: 'top' }
+            handleConnect(a.id, side, b.id, opposite[side])
+            announce(tr('Звʼязано: «{a}» → «{b}»', { a: a.title || tr('Без назви'), b: b.title || tr('Без назви') }))
+          }}
+          onDelete={() => {
+            coachMouse('delete')
+            deleteNote(menuNote.id)
+          }}
           onPickImage={() => pickImage(menuNote.id)}
           onEditImage={() => setImageEditId(menuNote.id)}
           onImagePatch={(patch) => patchNoteImage(menuNote.id, patch)}
@@ -1868,7 +2075,10 @@ export function Workspace({
           onFit={() => fitFrame(frameMenuFrame.id)}
           onSelectNotes={() => selectMany(frameContents(frameMenuFrame).map((n) => n.id))}
           onDuplicate={() => duplicateFrame(frameMenuFrame.id)}
-          onDelete={() => deleteFrame(frameMenuFrame.id)}
+          onDelete={() => {
+            coachMouse('delete')
+            deleteFrame(frameMenuFrame.id)
+          }}
         />
       )}
 
@@ -1882,7 +2092,16 @@ export function Workspace({
           onPatch={(patch) => patchChip(chipMenuChip.id, patch)}
           onToggle={() => patchChip(chipMenuChip.id, { on: !chipMenuChip.on })}
           onUnwire={() => patchChip(chipMenuChip.id, { targets: [], on: false })}
+          wireTargets={[
+            ...notes.filter((n) => !(chipMenuChip.targets ?? []).includes(n.id)).map((n) => ({ id: n.id, label: n.title, kind: tr('нотатка') })),
+            ...frames.filter((f) => !(chipMenuChip.targets ?? []).includes(f.id)).map((f) => ({ id: f.id, label: f.title, kind: tr('рамка') })),
+          ]}
+          onWire={(id) => {
+            patchChip(chipMenuChip.id, { targets: [...(chipMenuChip.targets ?? []), id] })
+            announce(tr('Кнопку «{tag}» підʼєднано', { tag: chipMenuChip.tag }))
+          }}
           onDelete={() => {
+            coachMouse('delete')
             setChips((prev) => prev.filter((c) => c.id !== chipMenuChip.id))
             setSelectedChipId(null)
           }}

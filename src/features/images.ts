@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
+import { invoke } from '@tauri-apps/api/core'
+import { getItem, isDesktop, keys } from './store'
 
 /**
- * Photos live in IndexedDB (much more room than localStorage, where notes are kept);
+ * Photos live in the data folder (desktop) or IndexedDB (browser), apart from the notes;
  * a note only stores the image id. Imported photos are downscaled and re-encoded,
  * so a 12-megapixel phone picture becomes a few hundred KB.
  */
@@ -47,10 +49,42 @@ function tx<T>(mode: IDBTransactionMode, run: (s: IDBObjectStore) => IDBRequest<
   )
 }
 
-export const getImage = (id: string) => tx<Blob | undefined>('readonly', (s) => s.get(id) as IDBRequest<Blob | undefined>)
-export const deleteImage = (id: string) => tx('readwrite', (s) => s.delete(id))
-export const putImage = (id: string, blob: Blob) => tx('readwrite', (s) => s.put(blob, id))
-export const allIds = () => tx<IDBValidKey[]>('readonly', (s) => s.getAllKeys())
+// browser: IndexedDB
+const idbGet = (id: string) => tx<Blob | undefined>('readonly', (s) => s.get(id) as IDBRequest<Blob | undefined>)
+const idbDelete = (id: string) => tx('readwrite', (s) => s.delete(id))
+const idbPut = (id: string, blob: Blob) => tx('readwrite', (s) => s.put(blob, id))
+const idbIds = () => tx<IDBValidKey[]>('readonly', (s) => s.getAllKeys())
+
+// desktop: files in the data folder (images/<id>.jpg|png…)
+const sniff = (b: Uint8Array) =>
+  b[0] === 0x89 && b[1] === 0x50 ? 'image/png' : b[0] === 0xff && b[1] === 0xd8 ? 'image/jpeg' : b[0] === 0x47 && b[1] === 0x49 ? 'image/gif' : b[8] === 0x57 && b[9] === 0x45 ? 'image/webp' : ''
+async function fileGet(id: string): Promise<Blob | undefined> {
+  const buf = await invoke<ArrayBuffer | null>('image_read', { id })
+  if (!buf || !buf.byteLength) return undefined
+  const bytes = new Uint8Array(buf)
+  return new Blob([bytes], { type: sniff(bytes) })
+}
+async function filePut(id: string, blob: Blob) {
+  const bytes = new Uint8Array(await blob.arrayBuffer())
+  const ext = /png/.test(blob.type) ? 'png' : /webp/.test(blob.type) ? 'webp' : /gif/.test(blob.type) ? 'gif' : 'jpg'
+  await invoke('image_write', bytes, { headers: { 'x-image-id': id, 'x-image-ext': ext } })
+}
+
+export const getImage = (id: string) => (isDesktop() ? fileGet(id) : idbGet(id))
+export const deleteImage = (id: string) => (isDesktop() ? invoke('image_delete', { id }) : idbDelete(id))
+export const putImage = (id: string, blob: Blob) => (isDesktop() ? filePut(id, blob) : idbPut(id, blob))
+export const allIds = (): Promise<IDBValidKey[]> => (isDesktop() ? invoke<string[]>('image_list') : idbIds())
+
+/** First launch with the data folder: copy the photos from the webview's IndexedDB into it (originals stay). */
+export async function migrateImagesToFolder() {
+  if (!isDesktop() || typeof indexedDB === 'undefined') return
+  const have = new Set(await invoke<string[]>('image_list'))
+  for (const id of (await idbIds()) as string[]) {
+    if (typeof id !== 'string' || have.has(id)) continue
+    const b = await idbGet(id).catch(() => undefined)
+    if (b) await filePut(id, b)
+  }
+}
 
 export const isImageFile = (f: { type: string }) => /^image\//.test(f.type)
 
@@ -103,10 +137,9 @@ export function useImageUrl(id: string | undefined) {
 /** Delete stored pictures no note refers to any more (run once, some time after launch). */
 export async function collectUnusedImages() {
   const used = new Set<string>()
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i)!
-    if (!/^aethel-vault:(vault:[^:]+:)?notes$/.test(key)) continue
-    for (const m of (localStorage.getItem(key) ?? '').matchAll(/"id":"(img-[a-z0-9-]+)"/g)) used.add(m[1])
+  for (const key of keys()) {
+    if (!/^aethel-vault:(vault:[^:]+:)?(notes|before-import)$/.test(key)) continue
+    for (const m of (getItem(key) ?? '').matchAll(/"id":"(img-[a-z0-9-]+)"/g)) used.add(m[1])
   }
   const ids = await allIds()
   await Promise.all(ids.filter((id) => typeof id === 'string' && !used.has(id)).map((id) => deleteImage(id as string)))
