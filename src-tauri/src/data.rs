@@ -46,7 +46,7 @@ fn configured_dir(app: &AppHandle) -> Result<(PathBuf, bool), String> {
   Ok((default_dir(app)?, false))
 }
 
-fn current(state: &State<'_, DataDir>) -> Result<PathBuf, String> {
+pub(crate) fn current(state: &State<'_, DataDir>) -> Result<PathBuf, String> {
   state
     .0
     .lock()

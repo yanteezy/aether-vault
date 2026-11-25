@@ -1,6 +1,7 @@
 use tauri::Manager;
 
 mod data;
+mod vault_fs;
 
 /// Save a backup (.aether) into the user's Downloads folder (Documents / home as fallbacks)
 /// without overwriting an existing file. Returns the full path of the saved file.
@@ -74,7 +75,18 @@ pub fn run() {
       data::data_default_dir,
       data::data_inspect_dir,
       data::data_set_dir,
-      data::data_use_default
+      data::data_use_default,
+      vault_fs::vault_list,
+      vault_fs::vault_read,
+      vault_fs::vault_meta_write,
+      vault_fs::note_name,
+      vault_fs::note_write,
+      vault_fs::note_rename,
+      vault_fs::note_delete,
+      vault_fs::canvas_write,
+      vault_fs::attachment_write,
+      vault_fs::attachment_read,
+      vault_fs::attachment_delete
     ])
     .setup(|app| {
       // Windows / Linux: make sure aether:// points at this copy of the app (macOS reads it from Info.plist)
