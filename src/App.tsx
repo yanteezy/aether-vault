@@ -24,6 +24,7 @@ import { coachKey, coachMouse } from './features/coach'
 import { Toast } from './components/Toast'
 import { SaveStatusBanner } from './components/SaveStatusBanner'
 import { UnreadableNotice } from './components/UnreadableNotice'
+import { GlobalSearch } from './components/GlobalSearch'
 import { hasPreImport, IMPORT_DONE, revertImport } from './features/backup'
 import './App.css'
 
@@ -77,6 +78,9 @@ export default function App() {
   const [viewMode, setViewMode] = usePersistentState<ViewMode>('view-mode', 'canvas')
   const [zoomPercent, setZoomPercent] = useState(100)
   const apiRef = useRef<WorkspaceApi | null>(null)
+  /** Search over every workspace (Ctrl+Space), and the note it is taking us to. */
+  const [globalSearch, setGlobalSearch] = useState(false)
+  const [goTo, setGoTo] = useState<{ vaultId: string; noteId: string } | null>(null)
   // ---------- sharing ----------
   const [shareOpen, setShareOpen] = useState(false)
   const shareBtnRef = useRef<HTMLButtonElement>(null)
@@ -142,6 +146,29 @@ export default function App() {
     },
     [vaults, vault.id, setActiveVaultId],
   )
+
+  // Ctrl+Space: search every workspace (plain Space searches the current one)
+  useEffect(() => {
+    if (!langChosen || splash || settingsOpen || incoming) return
+    const h = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' || !e.ctrlKey || e.altKey || e.metaKey || e.shiftKey || e.repeat) return
+      e.preventDefault()
+      e.stopPropagation()
+      setGlobalSearch((open) => !open)
+    }
+    window.addEventListener('keydown', h, true)
+    return () => window.removeEventListener('keydown', h, true)
+  }, [langChosen, splash, settingsOpen, incoming])
+
+  // after a switch of workspace the note is shown once its canvas is in place
+  useEffect(() => {
+    if (!goTo || goTo.vaultId !== vault.id) return
+    const timer = window.setTimeout(() => {
+      apiRef.current?.vaultId === goTo.vaultId && apiRef.current.showNote(goTo.noteId)
+      setGoTo(null)
+    }, SLIDE_MS + 80)
+    return () => window.clearTimeout(timer)
+  }, [goTo, vault.id])
 
   // ⌘⌥→ / ⌘⌥← and ⌃Tab / ⌃⇧Tab: tab to the right / left
   useEffect(() => {
@@ -475,6 +502,16 @@ export default function App() {
       {incoming && !splash && <ShareOpenDialog link={incoming} onOpen={openSharedBoard} onCancel={() => setIncoming(null)} />}
       {splash && <SplashScreen onDone={hideSplash} />}
       <UpdateNotice currentVersion={pkg.version} />
+        {globalSearch && (
+          <GlobalSearch
+            vaults={vaults}
+            onPick={(found) => {
+              setGoTo({ vaultId: found.vaultId, noteId: found.noteId })
+              if (found.vaultId !== vault.id) switchVault(found.vaultId)
+            }}
+            onClose={() => setGlobalSearch(false)}
+          />
+        )}
       <Toast />
       <UnreadableNotice />
       <SaveStatusBanner

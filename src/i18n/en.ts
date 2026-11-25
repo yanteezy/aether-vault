@@ -506,4 +506,7 @@ export const EN: Record<string, string> = {
   'Деякі файли не вдалося прочитати: {n}': 'Some files could not be read: {n}',
   'Aether їх не показує, але не змінює і не видаляє. Виправте файл і запустіть Aether знову.': 'Aether does not show them, but never changes or deletes them. Fix the file and start Aether again.',
   'Показати файл': 'Show the file',
+  'Пошук в усіх сховищах': 'Search all workspaces',
+  'Результати': 'Results',
+  'Знайдено: {n}': 'Found: {n}',
 }

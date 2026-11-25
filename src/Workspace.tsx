@@ -70,6 +70,10 @@ const isTyping = (t: EventTarget | null) =>
   !!(t as HTMLElement | null)?.closest?.('input, textarea, select, [contenteditable="true"]')
 
 export interface WorkspaceApi {
+  /** Which workspace this is (the handle moves between them on a tab switch). */
+  vaultId: string
+  /** Select a note and bring it into view. False when there is no such note. */
+  showNote: (id: string) => boolean
   newNote: () => void
   /** The board (or just the selection) for a share link / file; photos are left out of links. */
   shareSnapshot: (o: { selection: boolean; skipPrivate: boolean }) => ShareSnapshot
@@ -1670,6 +1674,12 @@ export function Workspace({
   useEffect(() => {
     if (!apiRef) return
     apiRef.current = {
+      vaultId: vault.id,
+      showNote: (id) => {
+        const note = notes.find((n) => n.id === id)
+        if (note) jumpTo(note)
+        return !!note
+      },
       newNote: () => createNote(''),
       selectionSize: () => {
         const c = collectSelection()

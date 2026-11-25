@@ -111,6 +111,9 @@ export class FileStore implements VaultBackend {
   get problems(): string[] {
     return [...this.vaults.values()].flatMap((e) => e.files?.problems.map((p) => `${e.files!.dir}/${p}`) ?? [])
   }
+  vaultOfFolder(dir: string): string | undefined {
+    return Object.keys(this.dirs).find((id) => this.dirs[id] === dir)
+  }
   /** What is on disk now, for the search index. */
   indexed(): { dir: string; notes: ReturnType<VaultFiles['notesByFile']>; connections: VaultData['connections'] }[] {
     return [...this.vaults.values()].flatMap(({ data, files }) =>
