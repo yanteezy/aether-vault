@@ -1,4 +1,4 @@
-import { discardVaultRepo } from '../features/vaultRepo'
+import { discardVaultRepo, getVaultBackend } from '../features/vaultRepo'
 import { keys, removeItem } from '../features/store'
 
 const STORAGE_PREFIX = 'aethel-vault:'
@@ -13,7 +13,8 @@ export function vaultKey(vaultId: string, key: string) {
 /** Delete a vault's data. Its repository goes first, so no pending change is written back afterwards. */
 export function deleteVaultData(vaultId: string) {
   discardVaultRepo(vaultId)
-  removeVaultKeys(vaultId)
+  // the key-value backend removes the keys; vault folders go to the trash and the old keys stay
+  getVaultBackend().remove(vaultId)
 }
 
 /** Remove a vault's stored keys (the key-value backend of features/vaultRepo.ts). */

@@ -350,6 +350,15 @@ pub(crate) fn copy_vaults(from: &Path, to: &Path) -> Result<(), String> {
   Ok(())
 }
 
+/// Notes of a data folder that keeps them in vault folders.
+pub(crate) fn count_vault_notes(root: &Path) -> usize {
+  let vaults = list_vaults(root).unwrap_or_default();
+  vaults
+    .iter()
+    .map(|v| files(&root.join(&v.dir)).unwrap_or_default().iter().filter(|f| f.to_lowercase().ends_with(".md")).count())
+    .sum()
+}
+
 pub fn write_canvas(vault: &Path, file: &str, canvas: &str, extra: &str) -> Result<(), String> {
   let board = &with_ext(file, ".canvas")?[..file.len() - ".canvas".len()];
   // the extra file first: if the second write fails, the old board is still whole
@@ -594,6 +603,7 @@ mod tests {
     assert!(to.0.join(&dir).join(".aether").join("vault.json").is_file());
     assert!(to.0.join("backups").join("b.aether").is_file());
     assert!(!to.0.join("чужа папка").exists());
+    assert_eq!(count_vault_notes(&to.0), 1);
   }
 
   #[test]

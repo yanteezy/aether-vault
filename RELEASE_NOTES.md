@@ -1,4 +1,5 @@
 What's new · Що нового
+• Changing the data folder takes workspace folders and safety copies along · Зміна папки даних переносить також папки сховищ і резервні копії
 • Groundwork for keeping every note as an ordinary Markdown file you can also open in Obsidian — nothing changes in the app yet · Основа для того, щоб кожна нотатка була звичайним Markdown-файлом, який відкриється і в Obsidian, — у застосунку поки нічого не змінюється
 • Under the hood: each workspace's notes now have a single owner in the app, ready for new views (document, table, board); nothing changes in how notes are stored · Під капотом: нотатки кожного сховища тепер мають одного «власника» в застосунку — підготовка до нових видів (документ, таблиця, канбан); формат зберігання не змінився
 • Under the hood: automatic tests now check every change before a release, so updates are less likely to break anything · Під капотом: автоматичні тести тепер перевіряють кожну зміну перед релізом — оновлення рідше щось ламають

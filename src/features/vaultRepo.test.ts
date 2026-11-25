@@ -188,7 +188,7 @@ describe('registry', () => {
     repo.set('ink', repo.get('ink')!)
     repo.set('notes', [note('n')])
     vi.advanceTimersByTime(200)
-    expect(backend.save).toHaveBeenCalledWith('x', 'notes', [note('n')])
+    expect(backend.save).toHaveBeenCalledWith('x', 'notes', [note('n')], { ink: [], notes: [note('n')] })
     expect(backend.save).toHaveBeenCalledTimes(1)
   })
 })

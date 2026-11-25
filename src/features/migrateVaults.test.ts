@@ -1,39 +1,11 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
-import { migrateVaults, type MigrationIo, type MigrationSource } from './migrateVaults'
+import { migrateVaults, type MigrationSource } from './migrateVaults'
 import { VaultFiles } from './vaultFiles'
 import type { VaultData } from './vaultRepo'
-import { fakeDisk } from '../test/fakeVaultDisk'
+import { fakeLibrary } from '../test/fakeVaultDisk'
 import { guideContent } from '../data/guide'
 import type { Vault } from '../types/note'
-
-/** Several vault folders, each an in-memory disk. */
-function fakeLibrary() {
-  const folders = new Map<string, { meta: string; disk: ReturnType<typeof fakeDisk>; attachments: Set<string> }>()
-  const at = (dir: string) => folders.get(dir)!
-  let corrupt = false
-  const io: MigrationIo = {
-    listVaults: async () => [...folders].map(([dir, f]) => ({ dir, meta: f.meta })),
-    writeVaultMeta: async (dir, name, meta) => {
-      let target = dir
-      if (!target) {
-        target = name
-        for (let n = 2; folders.has(target); n++) target = `${name} ${n}`
-        folders.set(target, { meta, disk: fakeDisk(), attachments: new Set() })
-      }
-      at(target).meta = meta
-      return target
-    },
-    readVault: async (dir) => ({ ...at(dir).disk.snapshot(), meta: at(dir).meta, attachments: [...at(dir).attachments] }),
-    writeAttachment: async (dir, name) => void at(dir).attachments.add(name),
-    noteFileName: (v, ...a) => at(v).disk.io.noteFileName(v, ...a),
-    writeNote: (v, file, text, create) => at(v).disk.io.writeNote(v, file, corrupt ? text.slice(0, -3) : text, create),
-    renameNote: (v, ...a) => at(v).disk.io.renameNote(v, ...a),
-    deleteNote: (v, ...a) => at(v).disk.io.deleteNote(v, ...a),
-    writeCanvas: (v, ...a) => at(v).disk.io.writeCanvas(v, ...a),
-  }
-  return { io, folders, at, corrupt: (on: boolean) => (corrupt = on) }
-}
 
 const vault = (id: string, name: string): Vault => ({ id, name, createdAt: 1 })
 const source = (vaults: Vault[], data: Record<string, Partial<VaultData>>): MigrationSource => ({

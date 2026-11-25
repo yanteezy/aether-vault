@@ -35,7 +35,8 @@ export type Updater<T> = T | ((prev: T) => T)
 export interface VaultBackend {
   /** Whatever is stored for the vault; a missing or unreadable kind is left out. */
   load(vaultId: string): Partial<VaultData>
-  save<K extends VaultKind>(vaultId: string, kind: K, value: VaultData[K]): void
+  /** `all` is everything the app holds for the vault, for a backend that writes whole vaults. */
+  save<K extends VaultKind>(vaultId: string, kind: K, value: VaultData[K], all?: Partial<VaultData>): void
   remove(vaultId: string): void
 }
 
@@ -61,6 +62,13 @@ export const KeyValueBackend: VaultBackend = {
   },
 }
 
+let activeBackend: VaultBackend = KeyValueBackend
+export const getVaultBackend = () => activeBackend
+/** Called once at launch, before any repository exists (see features/fileStore.ts). */
+export function setVaultBackend(backend: VaultBackend) {
+  activeBackend = backend
+}
+
 const SAVE_DELAY = 200
 
 export class VaultRepository {
@@ -73,7 +81,7 @@ export class VaultRepository {
   private subscribers = 0
   private disposed = false
 
-  constructor(vaultId: string, backend: VaultBackend = KeyValueBackend) {
+  constructor(vaultId: string, backend: VaultBackend = activeBackend) {
     this.vaultId = vaultId
     this.backend = backend
     this.values = { ...backend.load(vaultId) }
@@ -151,7 +159,7 @@ export class VaultRepository {
     if (!this.pending.size) this.unlisten()
     if (this.disposed || isPersistenceSuspended()) return
     try {
-      this.backend.save(this.vaultId, kind, this.values[kind] as VaultData[typeof kind])
+      this.backend.save(this.vaultId, kind, this.values[kind] as VaultData[typeof kind], this.values as Partial<VaultData>)
     } catch {
       /* reported by the store (save status banner) */
     }

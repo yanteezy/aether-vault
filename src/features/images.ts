@@ -134,9 +134,20 @@ export function useImageUrl(id: string | undefined) {
   return url
 }
 
+/**
+ * Notes that live outside the storage keys (vault folders) name their photos here; null = some of them can't be
+ * read right now, so nothing may be deleted.
+ */
+let otherUsers: () => Set<string> | null = () => new Set()
+export function setPhotoUsers(fn: () => Set<string> | null) {
+  otherUsers = fn
+}
+
 /** Delete stored pictures no note refers to any more (run once, some time after launch). */
 export async function collectUnusedImages() {
-  const used = new Set<string>()
+  const others = otherUsers()
+  if (!others) return
+  const used = new Set<string>(others)
   for (const key of keys()) {
     if (!/^aethel-vault:(vault:[^:]+:)?(notes|before-import)$/.test(key)) continue
     for (const m of (getItem(key) ?? '').matchAll(/"id":"(img-[a-z0-9-]+)"/g)) used.add(m[1])

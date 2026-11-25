@@ -1,4 +1,5 @@
 import type { VaultIo } from '../features/vaultFiles'
+import type { FileIo } from '../features/fileStore'
 import type { VaultSnapshot } from '../features/vaultFs'
 
 /** A vault folder in memory that behaves like the Rust side: names ignore case, nothing is replaced. */
@@ -52,4 +53,37 @@ export function fakeDisk() {
     unreadable: [],
   })
   return { io, notes, trash, boards, log, snapshot, fail: (op?: string) => (failing = op) }
+}
+
+/** Several vault folders, each an in-memory disk. */
+export function fakeLibrary() {
+  const folders = new Map<string, { meta: string; disk: ReturnType<typeof fakeDisk>; attachments: Set<string> }>()
+  const at = (dir: string) => folders.get(dir)!
+  let corrupt = false
+  const trashed: string[] = []
+  const io: FileIo = {
+    listVaults: async () => [...folders].map(([dir, f]) => ({ dir, meta: f.meta })),
+    writeVaultMeta: async (dir, name, meta) => {
+      let target = dir
+      if (!target) {
+        target = name
+        for (let n = 2; folders.has(target); n++) target = `${name} ${n}`
+        folders.set(target, { meta, disk: fakeDisk(), attachments: new Set() })
+      }
+      at(target).meta = meta
+      return target
+    },
+    readVault: async (dir) => ({ ...at(dir).disk.snapshot(), meta: at(dir).meta, attachments: [...at(dir).attachments] }),
+    writeAttachment: async (dir, name) => void at(dir).attachments.add(name),
+    deleteVault: async (dir) => {
+      trashed.push(dir)
+      folders.delete(dir)
+    },
+    noteFileName: (v, ...a) => at(v).disk.io.noteFileName(v, ...a),
+    writeNote: (v, file, text, create) => at(v).disk.io.writeNote(v, file, corrupt ? text.slice(0, -3) : text, create),
+    renameNote: (v, ...a) => at(v).disk.io.renameNote(v, ...a),
+    deleteNote: (v, ...a) => at(v).disk.io.deleteNote(v, ...a),
+    writeCanvas: (v, ...a) => at(v).disk.io.writeCanvas(v, ...a),
+  }
+  return { io, folders, at, trashed, corrupt: (on: boolean) => (corrupt = on) }
 }

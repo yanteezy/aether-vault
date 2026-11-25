@@ -192,6 +192,10 @@ export class VaultFiles {
     this.disk.set(note.id, { file, text, title: note.title, note, content: signature })
   }
 
+  hasAttachment(id: string) {
+    return this.attachments.has(id)
+  }
+
   /** A photo added after opening: its extension is needed to link it from the note. */
   attachmentAdded(name: string) {
     const dot = name.lastIndexOf('.')

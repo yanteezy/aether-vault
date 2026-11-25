@@ -17,7 +17,7 @@ import { parseShareLink, type SharedBoard, type ShareToken } from './features/sh
 import { ShareMenu } from './components/ShareMenu'
 import { ShareOpenDialog } from './components/ShareOpenDialog'
 import { FirstHints } from './components/FirstHints'
-import { vaultKey } from './hooks/vaultKeys'
+import { getVaultBackend } from './features/vaultRepo'
 import { getItem, removeItem, setItem } from './features/store'
 import { showToast } from './features/toast'
 import { coachKey, coachMouse } from './features/coach'
@@ -227,12 +227,9 @@ export default function App() {
   const openSharedBoard = useCallback(
     (b: SharedBoard) => {
       const id = `v${Date.now().toString(36)}`
-      const put = (k: string, v: unknown) => setItem('aethel-vault:' + vaultKey(id, k), JSON.stringify(v))
-      put('notes', b.notes)
-      put('connections', b.connections)
-      put('frames', b.frames)
-      put('chips', b.chips)
-      put('ink', b.strokes)
+      const content = { notes: b.notes, connections: b.connections, frames: b.frames, chips: b.chips, ink: b.strokes }
+      const backend = getVaultBackend()
+      for (const k of ['notes', 'connections', 'frames', 'chips', 'ink'] as const) backend.save(id, k, content[k] as never, content)
       // frame the content (free drawings included) so it is in view right away
       const xs: number[] = []
       const ys: number[] = []
@@ -242,7 +239,8 @@ export default function App() {
       if (xs.length) {
         const x = Math.min(...xs)
         const y = Math.min(...ys)
-        put('canvas-transform', fitTransform({ x: x - 40, y: y - 40, width: Math.max(...xs) - x + 80, height: Math.max(...ys) - y + 80 }))
+        const view = fitTransform({ x: x - 40, y: y - 40, width: Math.max(...xs) - x + 80, height: Math.max(...ys) - y + 80 })
+        backend.save(id, 'canvas-transform', view, content)
       }
       setVaults((prev) => {
         const names = new Set(prev.map((v) => v.name))

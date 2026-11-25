@@ -37,6 +37,7 @@
 | `src-tauri/src/lib.rs` | Реєстрація плагінів і команд |
 | `src-tauri/src/vault_fs.rs` | Сховище-папка на диску: безпечні назви файлів, атомарний запис, перейменування без перезапису, видалення в `.trash`, команди `vault_*`, `note_*`, `canvas_write`, `attachment_*` |
 | `src/features/vaultFs.ts` | TypeScript-обгортки цих команд |
+| `src/features/vaultFiles.ts`, `fileStore.ts`, `migrateVaults.ts`, `fileStoreBoot.ts` | Сховище-папка як дані застосунку, перемикання на файли й міграція |
 | `src/features/formats/` | `noteMarkdown.ts` (нотатка ⇄ `.md`), `jsonCanvas.ts` (полотно ⇄ `.canvas` + службовий файл); приклад — `tests/fixtures/vault-sample/` |
 | `src/i18n/en.ts` | Переклади: ключ = український рядок, значення = англійський |
 | `src/styles/redesign.css` | Останній шар стилів + блок доступності (WCAG 2.2 AA) |
@@ -52,7 +53,7 @@
 - Формат зберігання визначає `VaultBackend` (`load` / `save` / `remove`). Зараз — `KeyValueBackend`: ті самі JSON-ключі, що й у 0.2.x. Новий формат = новий бекенд + міграція (правило 1), а не зміни у видах.
 - Стан інтерфейсу (`panel-graph`, `ink-tool`, `active-tag-filters`, …) — не дані сховища, він лишається на `usePersistentState`.
 
-## Новий формат файлів (з 0.3, застосунок ще не перемкнено — крок 1b)
+## Новий формат файлів (з 0.3; міграція поки лише в збірках з `VITE_FILE_VAULTS=1`)
 
 Сховище = папка в папці даних: `<нотатка>.md`, `<полотно>.canvas` (JSON Canvas 1.0), `attachments/`, `.aether/vault.json`, `.aether/canvas-extra/<полотно>.json`, `.trash/`.
 
@@ -61,6 +62,9 @@
 - Приховані позначки `%% aether:body|checklist|code %%` пишуться лише там, де звичайний Markdown прочитався б інакше.
 - **Не нищити чуже:** невідомі властивості frontmatter і чужий вміст `.canvas` зберігаються; файл із пошкодженим frontmatter не переписується (`bad-frontmatter`); з `.canvas` зникає лише те, що Aether сам прочитав або записав (`owned`, передавай його в наступний запис).
 - `unreadable` у знімку сховища — це **не** видалені нотатки.
+- Перемикання: `fileStore.ts` — `FileStore` є `VaultBackend` над `VaultFiles` (`vaultFiles.ts`); `migrateVaults.ts` вважає сховище перенесеним лише коли прочитане з файлів збігається зі старими даними. Позначка — ключ `storage-format`; щойно вона є, застосунок працює з файлами незалежно від прапорця. Старі ключі після міграції не змінюються.
+- Код, якому потрібні дані сховища поза React, бере їх через `getVaultBackend()` — не через ключі `vaultKey(…)`.
+- Перевіряючи міграцію на десктопі, запускай `tauri dev` з іншим `identifier` і схемою посилань (`--config`), інакше тестова збірка візьме справжню папку даних і перехопить `aether://`.
 - Після навмисної зміни формату: `UPDATE_FIXTURES=1 npm test`.
 
 ## Незмінні правила
