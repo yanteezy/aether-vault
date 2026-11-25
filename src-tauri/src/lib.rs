@@ -86,7 +86,9 @@ pub fn run() {
       vault_fs::canvas_write,
       vault_fs::attachment_write,
       vault_fs::attachment_read,
-      vault_fs::attachment_delete
+      vault_fs::attachment_delete,
+      vault_fs::vault_delete,
+      vault_fs::data_backup
     ])
     .setup(|app| {
       // Windows / Linux: make sure aether:// points at this copy of the app (macOS reads it from Info.plist)

@@ -42,6 +42,11 @@ export const renameNote = (vault: string, file: string, title: string) => invoke
 /** Moves the file to the vault's `.trash`. */
 export const deleteNote = (vault: string, file: string) => invoke<void>('note_delete', { vault, file })
 
+/** Moves the whole vault folder to the data folder's `.trash`. */
+export const deleteVault = (vault: string) => invoke<void>('vault_delete', { vault })
+/** A safety copy in `<data folder>/backups`; returns the file name it got. */
+export const writeDataBackup = (name: string, contents: string) => invoke<string>('data_backup', { name, contents })
+
 export const writeCanvas = (vault: string, file: string, canvas: string, extra: string) =>
   invoke<void>('canvas_write', { vault, file, canvas, extra })
 
