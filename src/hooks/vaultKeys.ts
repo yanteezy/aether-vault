@@ -1,3 +1,4 @@
+import { discardVaultRepo } from '../features/vaultRepo'
 import { keys, removeItem } from '../features/store'
 
 const STORAGE_PREFIX = 'aethel-vault:'
@@ -9,7 +10,14 @@ export function vaultKey(vaultId: string, key: string) {
   return vaultId === DEFAULT_VAULT_ID ? key : `vault:${vaultId}:${key}`
 }
 
+/** Delete a vault's data. Its repository goes first, so no pending change is written back afterwards. */
 export function deleteVaultData(vaultId: string) {
+  discardVaultRepo(vaultId)
+  removeVaultKeys(vaultId)
+}
+
+/** Remove a vault's stored keys (the key-value backend of features/vaultRepo.ts). */
+export function removeVaultKeys(vaultId: string) {
   if (vaultId === DEFAULT_VAULT_ID) {
     for (const k of ['notes', 'connections', 'canvas-transform', 'ink', 'frames', 'chips']) removeItem(STORAGE_PREFIX + k)
     return
