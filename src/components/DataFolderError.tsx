@@ -30,7 +30,7 @@ export function DataFolderError({ error }: { error: string }) {
       setBusy(false)
     }
   }
-  const useDefault = async () => {
+  const switchToDefault = async () => {
     setBusy(true)
     try {
       await invoke('data_use_default')
@@ -59,7 +59,7 @@ export function DataFolderError({ error }: { error: string }) {
           <button className="data-missing__btn" disabled={busy} onClick={() => void choose()}>
             {t('Вказати папку…')}
           </button>
-          <button className="data-missing__btn" disabled={busy} onClick={() => void useDefault()}>
+          <button className="data-missing__btn" disabled={busy} onClick={() => void switchToDefault()}>
             {t('Стандартна папка')}
           </button>
         </div>
