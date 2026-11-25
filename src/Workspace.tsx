@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CanvasBoard } from './components/CanvasBoard'
+import { CULL_FROM } from './components/canvasCull'
 import { CommandDock } from './components/CommandDock'
 import { coachKey, coachMouse } from './features/coach'
 import type { ViewMode } from './components/TopBar'
@@ -1942,7 +1943,8 @@ export function Workspace({
           </SidePanel>
 
           <SidePanel open={vaultOpen} title={tr('Сховище')}>
-            {notes.map((note) => (
+            {/* thousands of buttons are built only while the panel is open */}
+            {(vaultOpen || notes.length <= CULL_FROM) && notes.map((note) => (
               <button
                 key={note.id}
                 className={`side-panel__item${selectedId === note.id ? ' is-active' : ''}`}

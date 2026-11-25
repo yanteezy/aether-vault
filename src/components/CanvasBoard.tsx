@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ObjectFx } from '../effects/tagEffects'
 import type { NoteImage } from '../features/images'
 import type { InkStroke } from '../types/note'
@@ -9,6 +9,7 @@ import { NoteCard } from './NoteCard'
 import { ConnectionsLayer, type PendingLink } from './ConnectionsLayer'
 import { anchorPoint, nearestSide, pinPoint, type Point, type Size } from './geometry'
 import { CorkBackground } from './CorkBackground'
+import { CULL_FROM, MAX_CARDS, overlaps, viewRect, visibleNotes } from './canvasCull'
 import { useT } from '../i18n'
 import './CanvasBoard.css'
 
@@ -288,6 +289,61 @@ export function CanvasBoard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // ---------- large vaults: only what is near the screen is built ----------
+  const [screen, setScreen] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }))
+  useEffect(() => {
+    const onResize = () => setScreen({ w: window.innerWidth, h: window.innerHeight })
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+  const culled = notes.length > CULL_FROM
+  /** Cards that must exist wherever they are: being used, or about to be. */
+  const pinned = new Set(
+    // shortcut: a larger selection is not pinned, so zoomed far out it is dragged by one of its on-screen cards only
+    [selectedId, editing?.id, lifted, imageEditId, ...(selectedIds.size <= MAX_CARDS ? selectedIds : [])].filter((id): id is string => !!id),
+  )
+  const view = viewRect(transform, screen.w, screen.h)
+  const shown = culled ? visibleNotes(notes, view, sizes, pinned) : notes
+  /** Zoomed so far out that full cards would be too many (and unreadable): plain tiles instead. */
+  const far = culled && shown.length > MAX_CARDS
+  const cards = far ? shown.filter((n) => pinned.has(n.id)) : shown
+  const tiles = far ? shown.filter((n) => !pinned.has(n.id)) : []
+  const shownConnections = culled
+    ? connections.filter((c) => {
+        const a = notesById.get(c.from)
+        const b = notesById.get(c.to)
+        return (
+          !!a &&
+          !!b &&
+          (c.id === selectedConnectionId ||
+            overlaps(view, Math.min(a.x, b.x), Math.min(a.y, b.y), Math.max(a.x + a.width, b.x + b.width), Math.max(a.y + a.height, b.y + b.height)))
+        )
+      })
+    : connections
+
+  // one stable object, so a pan doesn't re-render thousands of unchanged tiles
+  const tileHandlers = useRef<TileEvents>(null!)
+  tileHandlers.current = {
+    press: (id, e) => {
+      if (e.button !== 0) return
+      e.stopPropagation()
+      e.preventDefault()
+      if (e.ctrlKey || e.metaKey) return onToggleSelect(id)
+      onSelectConnection(null)
+      onSelect(id)
+    },
+    menu: (id, e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      onSelect(id)
+      onNoteContextMenu(id, e.clientX, e.clientY)
+    },
+  }
+  const [tileEvents] = useState<TileEvents>(() => ({
+    press: (id, e) => tileHandlers.current.press(id, e),
+    menu: (id, e) => tileHandlers.current.menu(id, e),
+  }))
+
   // Background pattern scale: follows zoom exactly, but when zoomed far out the
   // period doubles (power of two keeps it aligned to the world origin) so the
   // pattern never collapses into noise.
@@ -298,7 +354,7 @@ export function CanvasBoard({
   const layer = (
     <ConnectionsLayer
       onRemoveConnection={onRemoveConnection}
-      connections={connections}
+      connections={shownConnections}
       notesById={notesById}
       sizes={sizes}
       emphasized={graphMode}
@@ -366,7 +422,10 @@ export function CanvasBoard({
       >
         {underlay}
         {!strings && layer}
-        {notes.map((note) => {
+        {tiles.map((note) => (
+          <NoteTile key={note.id} note={note} untitled={tr('Нотатка без назви')} events={tileEvents} />
+        ))}
+        {cards.map((note) => {
           const dimmed =
             (activeFilterTags.length > 0 &&
               !note.tags.some((t) => activeFilterTags.includes(t))) ||
@@ -411,7 +470,7 @@ export function CanvasBoard({
         })}
         {strings && layer}
         {strings &&
-          notes.map((note) => {
+          cards.map((note) => {
             const p = pinPoint(note, sizes.get(note.id))
             return (
               <div
@@ -443,6 +502,30 @@ export function CanvasBoard({
     </div>
   )
 }
+
+interface TileEvents {
+  press: (id: string, e: React.PointerEvent) => void
+  menu: (id: string, e: React.MouseEvent) => void
+}
+
+/** Stands for a card when too many are on screen; a click selects it, which makes it a full card. */
+const NoteTile = memo(function NoteTile({ note, untitled, events }: { note: NoteCardData; untitled: string; events: TileEvents }) {
+  return (
+    <div
+      data-note-id={note.id}
+      data-tint={note.color && note.color !== 'default' && note.color !== 'accent' ? note.color : undefined}
+      className="note-tile"
+      style={{ transform: `translate(${note.x}px, ${note.y}px)`, width: note.width, height: note.height }}
+      tabIndex={-1}
+      role="group"
+      aria-label={note.title || untitled}
+      onPointerDown={(e) => events.press(note.id, e)}
+      onContextMenu={(e) => events.menu(note.id, e)}
+    >
+      {note.title}
+    </div>
+  )
+})
 
 function isConnected(a: string, b: string, connections: Connection[]) {
   return connections.some((c) => (c.from === a && c.to === b) || (c.from === b && c.to === a))
