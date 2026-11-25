@@ -346,6 +346,7 @@ export function SettingsModal({ open, settings, vaultName, onRenameVault, onChan
             <div className="settings__group">
               {[
                 [tr('Пробіл'), 'Швидкий пошук'],
+                [IS_MAC ? '⌃ + ' + tr('Пробіл') : 'Ctrl + ' + tr('Пробіл'), 'Пошук в усіх сховищах'],
                 [tr('утримати {key}', { key: keyLabel(settings.radialKey || 'Alt') }), 'Кругове меню дій (відпустіть над дією)'],
                 [IS_MAC ? tr('⌘ / ⌃ + клік') : tr('Ctrl + клік'), 'Додати нотатку до виділення / прибрати'],
                 [IS_MAC ? tr('⌘ / ⌃ + перетягування') : tr('Ctrl + перетягування'), 'Виділити нотатки рамкою'],

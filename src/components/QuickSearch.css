@@ -94,6 +94,10 @@
   color: var(--text-tertiary);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
+.quick-search__row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.quick-search__row .quick-search__title { min-width: 0; }
+.quick-search__vault { flex: none; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11.5px; color: rgba(255, 255, 255, 0.62); }
+.quick-search__item.is-active .quick-search__vault { color: #fff; }
 @keyframes qs-fade { from { opacity: 0; } }
 @keyframes qs-pop { from { opacity: 0; transform: scale(0.96) translateY(-8px); } }
 

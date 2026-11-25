@@ -1,4 +1,5 @@
 What's new · Що нового
+• Ctrl+Space searches all your workspaces at once and takes you to the note; plain Space still searches the current one · Ctrl+Пробіл шукає одразу в усіх сховищах і переносить до нотатки; звичайний Пробіл, як і раніше, шукає в поточному
 • Large workspaces open faster · Великі сховища відкриваються швидше
 • Your notes are now ordinary files: one Markdown file per note, one folder per workspace, openable in Obsidian. The move happens by itself on the first launch, after a safety copy (data folder → backups); the old data stays. Update Aether on every computer that shares the data folder before using it · Нотатки тепер звичайні файли: один Markdown-файл на нотатку, одна папка на сховище, їх можна відкрити в Obsidian. Перенесення відбудеться саме під час першого запуску, спершу зробивши резервну копію (папка даних → backups); старі дані залишаються. Якщо папка даних спільна для кількох компʼютерів, спершу оновіть Aether на всіх
 • If a note file cannot be read, Aether says which one instead of silently leaving it out · Якщо файл нотатки не читається, Aether каже, який саме, а не пропускає його мовчки

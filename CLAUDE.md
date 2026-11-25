@@ -32,6 +32,7 @@
 | `src/hooks/vaultKeys.ts` | Ключі даних сховища: `vaultKey(id, k)`; сховище `default` має «старі» ключі без префікса |
 | `src/features/images.ts` | Фото: у папці даних (десктоп) або IndexedDB (браузер) |
 | `src/features/backup.ts` | Експорт/імпорт `.aether`, знімок «до імпорту» і `revertImport()` |
+| `src/features/globalSearch.ts`, `components/GlobalSearch.tsx` | Пошук в усіх сховищах (Ctrl+Space): через індекс, а без нього — по нотатках у пам'яті |
 | `src/features/share.ts` | Посилання на дошку (`#a1.<flags>.<b64>`, deflate + AES-GCM) |
 | `src-tauri/src/data.rs` | Папка даних на диску: `aether-data.json`, `data/<key>.json`, `images/<id>.<ext>`; вибір папки, перенесення |
 | `src-tauri/src/lib.rs` | Реєстрація плагінів і команд |
