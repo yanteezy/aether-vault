@@ -35,6 +35,9 @@
 | `src/features/share.ts` | Посилання на дошку (`#a1.<flags>.<b64>`, deflate + AES-GCM) |
 | `src-tauri/src/data.rs` | Папка даних на диску: `aether-data.json`, `data/<key>.json`, `images/<id>.<ext>`; вибір папки, перенесення |
 | `src-tauri/src/lib.rs` | Реєстрація плагінів і команд |
+| `src-tauri/src/vault_fs.rs` | Сховище-папка на диску: безпечні назви файлів, атомарний запис, перейменування без перезапису, видалення в `.trash`, команди `vault_*`, `note_*`, `canvas_write`, `attachment_*` |
+| `src/features/vaultFs.ts` | TypeScript-обгортки цих команд |
+| `src/features/formats/` | `noteMarkdown.ts` (нотатка ⇄ `.md`), `jsonCanvas.ts` (полотно ⇄ `.canvas` + службовий файл); приклад — `tests/fixtures/vault-sample/` |
 | `src/i18n/en.ts` | Переклади: ключ = український рядок, значення = англійський |
 | `src/styles/redesign.css` | Останній шар стилів + блок доступності (WCAG 2.2 AA) |
 
@@ -48,6 +51,17 @@
 - Репозиторій звільняється, коли сховище не показує жоден вид (відкладене дописується); `deleteVaultData` спершу скидає репозиторій без запису.
 - Формат зберігання визначає `VaultBackend` (`load` / `save` / `remove`). Зараз — `KeyValueBackend`: ті самі JSON-ключі, що й у 0.2.x. Новий формат = новий бекенд + міграція (правило 1), а не зміни у видах.
 - Стан інтерфейсу (`panel-graph`, `ink-tool`, `active-tag-filters`, …) — не дані сховища, він лишається на `usePersistentState`.
+
+## Новий формат файлів (з 0.3, застосунок ще не перемкнено — крок 1b)
+
+Сховище = папка в папці даних: `<нотатка>.md`, `<полотно>.canvas` (JSON Canvas 1.0), `attachments/`, `.aether/vault.json`, `.aether/canvas-extra/<полотно>.json`, `.trash/`.
+
+- Rust лише безпечно переносить текст і байти; вміст файлів складає й розбирає TypeScript (`src/features/formats/`).
+- У `.md` — усе про саму нотатку (властивості `aether-*`, `tags`, `color`, `style`, `updated`); позиція й розмір — у `.canvas` (цілі пікселі); малюнки, кнопки-теги, кольори й замки рамок, вид — у `canvas-extra`.
+- Приховані позначки `%% aether:body|checklist|code %%` пишуться лише там, де звичайний Markdown прочитався б інакше.
+- **Не нищити чуже:** невідомі властивості frontmatter і чужий вміст `.canvas` зберігаються; файл із пошкодженим frontmatter не переписується (`bad-frontmatter`); з `.canvas` зникає лише те, що Aether сам прочитав або записав (`owned`, передавай його в наступний запис).
+- `unreadable` у знімку сховища — це **не** видалені нотатки.
+- Після навмисної зміни формату: `UPDATE_FIXTURES=1 npm test`.
 
 ## Незмінні правила
 
@@ -68,7 +82,7 @@
    - `npx tsc -b` — без помилок
    - `npm run lint`
    - `npm test` (Vitest) і `npm run test:e2e` (Playwright)
-   - `cargo check` у `src-tauri/` — якщо чіпав Rust
+   - `cargo check` і `cargo test` у `src-tauri/` — якщо чіпав Rust (спершу `npm run build`: Tauri потрібна папка `dist`)
 4. У фінальній відповіді: що зроблено, як перевірити руками (2–5 кроків), що свідомо не зроблено, нова версія.
 
 ## Тести
@@ -77,7 +91,7 @@
 | --- | --- | --- |
 | Юніт-тести (Vitest + jsdom + fake-indexeddb) | `npm test`, у режимі стеження `npm run test:watch` | поруч із кодом: `src/**/<файл>.test.ts`; спільний setup — `src/test/` |
 | Смоки в браузері (Playwright, Chromium) | `npm run test:e2e` (сам запускає `vite` на порту 1420) | `e2e/*.spec.ts`, стартовий стан — `e2e/fixtures.ts` |
-| CI | на кожен push і PR | `.github/workflows/test.yml`: tsc, lint, test, test:e2e, `cargo check` |
+| CI | на кожен push і PR | `.github/workflows/test.yml`: tsc, lint, test, test:e2e, `cargo check`, `cargo test` |
 
 - Перший запуск на новому комп'ютері: `npm ci`, потім `npx playwright install chromium`.
 - Тести йдуть у **браузерному режимі** (без Tauri, дані в localStorage / IndexedDB). Код, що кличе Rust, тестуй через `vi.mock('@tauri-apps/api/core')` (приклад — `src/features/store.test.ts`).

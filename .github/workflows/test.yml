@@ -80,8 +80,10 @@ jobs:
           npm ci
           npm run build
 
-      # no --locked yet: the committed Cargo.lock predates several plugins in Cargo.toml (release.yml resolves
-      # them the same way); add --locked back once an up-to-date Cargo.lock is committed
       - name: cargo check
         working-directory: src-tauri
-        run: cargo check
+        run: cargo check --locked
+
+      - name: cargo test
+        working-directory: src-tauri
+        run: cargo test --locked
