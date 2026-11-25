@@ -116,12 +116,12 @@ body[data-theme='detective'] .note-menu__item.is-danger:hover, body[data-theme='
   --tint-purple: 175, 82, 222;
   --tint-gray: 142, 142, 147;
 }
-.note-card[data-tint='yellow'] { --tint-rgb: var(--tint-yellow); }
-.note-card[data-tint='green'] { --tint-rgb: var(--tint-green); }
-.note-card[data-tint='blue'] { --tint-rgb: var(--tint-blue); }
-.note-card[data-tint='pink'] { --tint-rgb: var(--tint-pink); }
-.note-card[data-tint='purple'] { --tint-rgb: var(--tint-purple); }
-.note-card[data-tint='gray'] { --tint-rgb: var(--tint-gray); }
+.note-card[data-tint='yellow'], .note-tile[data-tint='yellow'] { --tint-rgb: var(--tint-yellow); }
+.note-card[data-tint='green'], .note-tile[data-tint='green'] { --tint-rgb: var(--tint-green); }
+.note-card[data-tint='blue'], .note-tile[data-tint='blue'] { --tint-rgb: var(--tint-blue); }
+.note-card[data-tint='pink'], .note-tile[data-tint='pink'] { --tint-rgb: var(--tint-pink); }
+.note-card[data-tint='purple'], .note-tile[data-tint='purple'] { --tint-rgb: var(--tint-purple); }
+.note-card[data-tint='gray'], .note-tile[data-tint='gray'] { --tint-rgb: var(--tint-gray); }
 body:not([data-theme='mono']) .note-card[data-tint] {
   background: linear-gradient(165deg, rgba(var(--tint-rgb), 0.24), var(--glass-bg) 65%);
   border-color: rgba(var(--tint-rgb), 0.35);

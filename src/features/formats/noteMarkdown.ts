@@ -10,6 +10,7 @@ import { resolveFontSize, type ChecklistItem, type NoteCardData, type NoteColor,
 import type { NoteFont } from '../../settings/fonts'
 import type { NoteImage } from '../images'
 import type { NoteLink } from '../links'
+import { quickYaml } from './quickYaml'
 
 /** A note without its place on the canvas. */
 export type NoteContent = Omit<NoteCardData, 'x' | 'y' | 'width' | 'height'>
@@ -214,7 +215,7 @@ export function serializeNote(note: NoteContent, { stem, imageExt, previous }: S
 /** `fallbackId` is used for files Aether did not create (no `aether-id`). */
 export function parseNote(text: string, stem: string, fallbackId: string): NoteContent {
   const file = split(text)
-  const fm = (file.yaml.trim() ? (readYaml(file.yaml).toJS() as Record<string, unknown> | null) : null) ?? {}
+  const fm = (file.yaml.trim() ? (quickYaml(file.yaml) ?? (readYaml(file.yaml).toJS() as Record<string, unknown> | null)) : null) ?? {}
   const lines = file.content.replace(/\n$/, '').split('\n')
 
   let image: NoteImage | undefined

@@ -101,6 +101,12 @@ pub fn run() {
       index::index_rebuild
     ])
     .setup(|app| {
+      // the vaults are read while the window starts: it asks for them a third of a second later
+      let early = match data::configured_dir(app.handle()) {
+        Ok((root, _)) => vault_fs::EarlyReads::start(root.clone(), vault_fs::app_vault_dirs(&root)),
+        Err(_) => vault_fs::EarlyReads::default(),
+      };
+      app.manage(early);
       // Windows / Linux: make sure aether:// points at this copy of the app (macOS reads it from Info.plist)
       #[cfg(any(windows, target_os = "linux"))]
       {

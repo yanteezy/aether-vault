@@ -1,3 +1,9 @@
+/* these change on every frame of a pan; not inherited, so the browser doesn't restyle every card with them */
+@property --bg-x { syntax: '*'; inherits: false; }
+@property --bg-y { syntax: '*'; inherits: false; }
+@property --bg-scale { syntax: '*'; inherits: false; }
+@property --grid-px { syntax: '*'; inherits: false; }
+
 .canvas-board {
   position: absolute;
   inset: 0;
@@ -177,4 +183,25 @@ body.is-middle-panning,
 body.is-middle-panning * {
   cursor: grabbing !important;
   user-select: none;
+}
+
+/* a large vault zoomed far out: a tile with the title stands for each card */
+.note-tile {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  padding: 14px 16px;
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  background: var(--glass-bg-strong);
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.note-tile[data-tint] {
+  border: 3px solid rgb(var(--tint-rgb));
 }

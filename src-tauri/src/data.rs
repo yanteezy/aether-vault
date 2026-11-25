@@ -33,7 +33,7 @@ fn location_file(app: &AppHandle) -> Result<PathBuf, String> {
 }
 
 /// (folder, picked by the user?)
-fn configured_dir(app: &AppHandle) -> Result<(PathBuf, bool), String> {
+pub(crate) fn configured_dir(app: &AppHandle) -> Result<(PathBuf, bool), String> {
   if let Ok(text) = fs::read_to_string(location_file(app)?) {
     if let Ok(v) = serde_json::from_str::<serde_json::Value>(&text) {
       if let Some(d) = v.get("dir").and_then(|d| d.as_str()) {

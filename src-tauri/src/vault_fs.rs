@@ -16,6 +16,9 @@ use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::{ErrorKind, Write};
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
+use std::thread::JoinHandle;
+use std::time::SystemTime;
 use tauri::State;
 
 /// Longest file name stem, in bytes (macOS allows 255; room is left for " 999", the extension and the temp suffix).
@@ -211,7 +214,10 @@ fn files(dir: &Path) -> Result<Vec<String>, String> {
   for entry in entries {
     let entry = entry.map_err(es)?;
     let name = entry.file_name().to_string_lossy().into_owned();
-    if !name.starts_with('.') && entry.path().is_file() {
+    // the listing already says what each entry is (a separate check per file took 1 s for 10 000 notes);
+    // only a link needs a look at what it points to
+    let kind = entry.file_type().map_err(es)?;
+    if !name.starts_with('.') && (kind.is_file() || (kind.is_symlink() && entry.path().is_file())) {
       out.push(name);
     }
   }
@@ -268,6 +274,74 @@ pub fn read_vault(vault: &Path) -> Result<VaultSnapshot, String> {
   }
   out.attachments = files(&vault.join("attachments"))?;
   Ok(out)
+}
+
+// ---------- reading early ----------
+
+/// Every file `read_vault` reads, with its size and time: a different answer means something changed.
+type Print = Vec<(String, u64, Option<SystemTime>)>;
+
+fn fingerprint(vault: &Path) -> Print {
+  let mut out = Print::new();
+  for sub in ["", ".aether", ".aether/canvas-extra", "attachments"] {
+    for entry in fs::read_dir(vault.join(sub)).into_iter().flatten().flatten() {
+      // on Windows the listing carries these: no extra call per file
+      let meta = entry.metadata().ok();
+      let name = format!("{}/{}", sub, entry.file_name().to_string_lossy());
+      out.push((name, meta.as_ref().map(|m| m.len()).unwrap_or(0), meta.and_then(|m| m.modified().ok())));
+    }
+  }
+  out.sort();
+  out
+}
+
+struct Early {
+  dir: PathBuf,
+  print: Print,
+  snap: VaultSnapshot,
+}
+
+/// The app's vault folders, read while the window is still starting (about a third of a second on Windows).
+/// Each copy is handed out once, and only if its folder still looks exactly as it did; otherwise it is read again.
+#[derive(Default)]
+pub struct EarlyReads {
+  thread: Mutex<Option<JoinHandle<Vec<Early>>>>,
+  done: Mutex<Vec<Early>>,
+}
+
+impl EarlyReads {
+  /// `dirs`: the vault folders the app is going to open.
+  pub fn start(root: PathBuf, dirs: Vec<String>) -> EarlyReads {
+    let thread = std::thread::spawn(move || {
+      dirs
+        .iter()
+        .filter_map(|d| {
+          let dir = root.join(checked(d).ok()?);
+          // taken before reading: a change during the read makes it differ later
+          let print = fingerprint(&dir);
+          read_vault(&dir).ok().map(|snap| Early { dir, print, snap })
+        })
+        .collect()
+    });
+    EarlyReads { thread: Mutex::new(Some(thread)), done: Mutex::default() }
+  }
+
+  fn take(&self, dir: &Path) -> Option<VaultSnapshot> {
+    if let Some(thread) = self.thread.lock().ok()?.take() {
+      self.done.lock().ok()?.extend(thread.join().ok()?);
+    }
+    let mut done = self.done.lock().ok()?;
+    let at = done.iter().position(|e| e.dir == dir)?;
+    let early = done.swap_remove(at);
+    (early.print == fingerprint(dir)).then_some(early.snap)
+  }
+}
+
+/// The folders named by the app's `storage-format` key, once the data folder keeps vaults as folders.
+pub fn app_vault_dirs(root: &Path) -> Vec<String> {
+  let text = fs::read_to_string(root.join("data").join("storage-format.json")).unwrap_or_default();
+  let value: serde_json::Value = serde_json::from_str(&text).unwrap_or_default();
+  value["dirs"].as_object().map(|d| d.values().filter_map(|v| v.as_str().map(String::from)).collect()).unwrap_or_default()
 }
 
 #[derive(Serialize)]
@@ -410,8 +484,12 @@ pub fn vault_list(state: State<'_, DataDir>) -> Result<Vec<VaultEntry>, String> 
 }
 
 #[tauri::command]
-pub fn vault_read(state: State<'_, DataDir>, vault: String) -> Result<VaultSnapshot, String> {
-  read_vault(&vault_dir(&current(&state)?, &vault)?)
+pub fn vault_read(state: State<'_, DataDir>, early: State<'_, EarlyReads>, vault: String) -> Result<VaultSnapshot, String> {
+  let dir = vault_dir(&current(&state)?, &vault)?;
+  match early.take(&dir) {
+    Some(snap) => Ok(snap),
+    None => read_vault(&dir),
+  }
 }
 
 #[tauri::command]
@@ -654,6 +732,30 @@ mod tests {
     assert_eq!(write_backup(&t.0, "b.aether", "1").unwrap(), "b.aether");
     assert_eq!(write_backup(&t.0, "b.aether", "2").unwrap(), "b 2.aether");
     assert!(write_backup(&t.0, "../x", "3").is_err());
+  }
+
+  #[test]
+  fn an_early_read_is_used_only_while_the_folder_is_unchanged() {
+    let t = Temp::new("early");
+    let dir = write_meta(&t.0, None, "V", "{}").unwrap();
+    let v = t.0.join(&dir);
+    write_note(&v, "A.md", "перша", true).unwrap();
+    fs::create_dir_all(t.0.join("data")).unwrap();
+    fs::write(t.0.join("data").join("storage-format.json"), format!("{{\"format\":\"files\",\"dirs\":{{\"default\":\"{}\"}}}}", dir)).unwrap();
+    assert_eq!(app_vault_dirs(&t.0), [dir.clone()]);
+    assert!(app_vault_dirs(&t.0.join("немає")).is_empty());
+
+    let early = EarlyReads::start(t.0.clone(), app_vault_dirs(&t.0));
+    assert_eq!(early.take(&v).unwrap().notes[0].text, "перша");
+    // handed out once
+    assert!(early.take(&v).is_none());
+
+    let early = EarlyReads::start(t.0.clone(), vec![dir.clone(), "../x".into()]);
+    early.thread.lock().unwrap().take().map(|h| early.done.lock().unwrap().extend(h.join().unwrap()));
+    // a longer text: the size differs even where the clock is coarse
+    write_note(&v, "A.md", "змінена", false).unwrap();
+    assert!(early.take(&v).is_none());
+    assert!(EarlyReads::default().take(&v).is_none());
   }
 
   #[test]
