@@ -219,20 +219,40 @@ fn files(dir: &Path) -> Result<Vec<String>, String> {
   Ok(out)
 }
 
+/// Most of the time goes into opening many small files (antivirus included), so several threads share them.
+/// The answers keep the order of `names`; `None` = the file could not be read.
+fn read_all(dir: &Path, names: &[String]) -> Vec<Option<String>> {
+  let threads = std::thread::available_parallelism().map(|n| n.get() * 2).unwrap_or(4).min(32);
+  let size = names.len().div_ceil(threads).max(1);
+  std::thread::scope(|scope| {
+    let parts: Vec<_> = names
+      .chunks(size)
+      .map(|part| (part.len(), scope.spawn(move || part.iter().map(|n| fs::read_to_string(dir.join(n)).ok()).collect::<Vec<_>>())))
+      .collect();
+    parts
+      .into_iter()
+      // a failed thread must not make files look deleted: they count as unreadable
+      .flat_map(|(len, part)| part.join().unwrap_or_else(|_| vec![None; len]))
+      .collect()
+  })
+}
+
 pub fn read_vault(vault: &Path) -> Result<VaultSnapshot, String> {
   let mut out = VaultSnapshot { meta: fs::read_to_string(vault.join(".aether").join("vault.json")).map_err(es)?, ..Default::default() };
-  for name in files(vault)? {
-    let lower = name.to_lowercase();
-    let list = if lower.ends_with(".md") {
-      &mut out.notes
-    } else if lower.ends_with(".canvas") {
-      &mut out.canvases
-    } else {
-      continue;
-    };
-    match fs::read_to_string(vault.join(&name)) {
-      Ok(text) => list.push(TextFile { file: name, text }),
-      Err(_) => out.unreadable.push(name),
+  let wanted: Vec<String> = files(vault)?
+    .into_iter()
+    .filter(|n| {
+      let lower = n.to_lowercase();
+      lower.ends_with(".md") || lower.ends_with(".canvas")
+    })
+    .collect();
+  for (name, text) in wanted.iter().zip(read_all(vault, &wanted)) {
+    match text {
+      Some(text) => {
+        let list = if name.to_lowercase().ends_with(".md") { &mut out.notes } else { &mut out.canvases };
+        list.push(TextFile { file: name.clone(), text });
+      }
+      None => out.unreadable.push(name.clone()),
     }
   }
   let extra_dir = vault.join(".aether").join("canvas-extra");
@@ -483,6 +503,21 @@ mod tests {
     fn drop(&mut self) {
       let _ = fs::remove_dir_all(&self.0);
     }
+  }
+
+  #[test]
+  fn many_files_are_read_in_order_and_failures_stay_visible() {
+    let t = Temp::new("many");
+    let dir = write_meta(&t.0, None, "V", "{}").unwrap();
+    let v = t.0.join(&dir);
+    for i in 0..500 {
+      fs::write(v.join(format!("{:03}.md", i)), format!("text {}", i)).unwrap();
+    }
+    fs::write(v.join("250.md"), [0xff, 0xfe]).unwrap();
+    let snap = read_vault(&v).unwrap();
+    assert_eq!(snap.unreadable, ["250.md"]);
+    assert_eq!(snap.notes.len(), 499);
+    assert!(snap.notes.iter().all(|n| n.text == format!("text {}", n.file[..3].parse::<u32>().unwrap())));
   }
 
   #[test]
