@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "frames": {
+    "f1": {
+      "color": "cyan"
+    }
+  },
+  "ink": [
+    {
+      "id": "s1",
+      "tool": "pen",
+      "color": "amber",
+      "points": [
+        0,
+        0,
+        60,
+        20,
+        120,
+        0
+      ],
+      "x": 100,
+      "y": 700
+    }
+  ],
+  "chips": [
+    {
+      "id": "t1",
+      "tag": "зробити",
+      "x": 800,
+      "y": 280,
+      "color": "amber",
+      "targets": [
+        "n-todo"
+      ]
+    }
+  ],
+  "view": {
+    "x": 0,
+    "y": 0,
+    "scale": 0.8
+  }
+}
