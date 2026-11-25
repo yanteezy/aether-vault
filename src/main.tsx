@@ -12,8 +12,14 @@ const root = createRoot(document.getElementById('root')!)
 
 async function boot() {
   // the data folder is read before anything else, so every part of the app starts from the saved state
+  let moveFailed = ''
   try {
     await initStore()
+    if (isDesktop()) {
+      const { startFiles } = await import('./features/fileStoreBoot')
+      const files = await startFiles()
+      if (files.mode === 'failed') moveFailed = files.reason
+    }
   } catch (e) {
     const { DataFolderError } = await import('./components/DataFolderError')
     root.render(<DataFolderError error={String((e as Error)?.message ?? e)} />)
@@ -38,5 +44,11 @@ async function boot() {
       <App />
     </StrictMode>,
   )
+  if (moveFailed) {
+    console.error('moving to files failed:', moveFailed)
+    const [{ showToast }, { t }] = await Promise.all([import('./features/toast'), import('./i18n')])
+    // after the first render, which sets the language
+    window.setTimeout(() => showToast({ id: 'files', text: t('Не вдалося перенести нотатки у файли — Aether працює як раніше, нічого не змінено'), ms: 0 }), 1500)
+  }
 }
 void boot()

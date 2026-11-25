@@ -108,6 +108,29 @@ export function readJson<T>(key: string): T | undefined {
 }
 export const writeJson = (key: string, value: unknown) => setItem(P + key, JSON.stringify(value))
 
+// ---------- other writers ----------
+/** Data saved beside the key files (vault folders): part of `flush()` and of the save status. */
+export interface Writer {
+  flush: () => Promise<boolean>
+  pending: () => boolean
+  failure: () => unknown
+}
+let writer: Writer | null = null
+export function registerWriter(w: Writer | null) {
+  writer = w
+}
+async function flushWriter() {
+  if (!writer) return true
+  const ok = await writer.flush()
+  writerSaved(ok ? undefined : writer.failure())
+  return ok
+}
+/** The writer saves on its own timer; it reports here how that went. */
+export function writerSaved(failure: unknown) {
+  if (failure !== undefined) setStatus(reasonOf(failure))
+  else if (!queue.size) setStatus({ state: 'ok' })
+}
+
 // ---------- disk queue ----------
 const queue = new Map<string, string | null>()
 let draining: Promise<void> | null = null
@@ -140,7 +163,7 @@ async function drain() {
       }
     }
     retryDelay = 2000
-    setStatus({ state: 'ok' })
+    if (writer?.failure() === undefined) setStatus({ state: 'ok' })
   } finally {
     draining = null
   }
@@ -149,18 +172,21 @@ async function drain() {
 /** Ask every open editor to hand over its pending changes, then wait until all of them are on disk. */
 export async function flush(): Promise<boolean> {
   window.dispatchEvent(new Event('aether:flush'))
-  if (!mem) return status.state === 'ok'
+  // vault folders first: writing them may record a new folder in a key
+  const written = await flushWriter()
+  if (!mem) return written && status.state === 'ok'
   for (let i = 0; i < 3 && (queue.size || draining); i++) {
     if (!draining && queue.size) draining = Promise.resolve().then(drain)
     await draining
   }
-  return queue.size === 0
+  return written && queue.size === 0
 }
 /** Try the failed writes again now. */
 export function retrySaving() {
   window.clearTimeout(retryTimer)
   retryDelay = 2000
   if (!draining && queue.size) draining = Promise.resolve().then(drain)
+  void flushWriter()
 }
 
 // ---------- the data folder ----------

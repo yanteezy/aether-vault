@@ -501,4 +501,9 @@ export const EN: Record<string, string> = {
   '≈ {n} символів': '≈ {n} characters',
   'Малювати (Esc — вийти)': 'Draw (Esc to exit)',
   'Малювати, поки тримаєте клавішу': 'Draw while the key is held',
+  'Не вдалося перенести нотатки у файли — Aether працює як раніше, нічого не змінено':
+    'Your notes could not be moved to files — Aether keeps working as before, nothing was changed',
+  'Деякі файли не вдалося прочитати: {n}': 'Some files could not be read: {n}',
+  'Aether їх не показує, але не змінює і не видаляє. Виправте файл і запустіть Aether знову.': 'Aether does not show them, but never changes or deletes them. Fix the file and start Aether again.',
+  'Показати файл': 'Show the file',
 }

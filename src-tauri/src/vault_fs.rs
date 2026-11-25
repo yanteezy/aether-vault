@@ -297,6 +297,68 @@ pub fn write_meta(root: &Path, dir: Option<&str>, name: &str, meta: &str) -> Res
   Ok(dir)
 }
 
+/// A deleted workspace goes to the data folder's own `.trash`, whole.
+pub fn trash_vault(root: &Path, vault: &str) -> Result<(), String> {
+  let from = vault_dir(root, vault)?;
+  if !from.join(".aether").join("vault.json").is_file() {
+    return Err(format!("not-a-vault:{}", vault));
+  }
+  let bin = root.join(".trash");
+  fs::create_dir_all(&bin).map_err(es)?;
+  let to = bin.join(free_name(&bin, vault, "", None)?);
+  fs::rename(from, to).map_err(es)
+}
+
+/// A safety copy kept in `<data folder>/backups`; an existing one is never replaced.
+pub fn write_backup(root: &Path, name: &str, contents: &str) -> Result<String, String> {
+  if !root.is_dir() {
+    return Err(format!("missing-dir:{}", root.display()));
+  }
+  let dir = root.join("backups");
+  fs::create_dir_all(&dir).map_err(es)?;
+  let (stem, ext) = match checked(name)?.rfind('.') {
+    Some(i) => name.split_at(i),
+    None => (name, ""),
+  };
+  let file = free_name(&dir, stem, ext, None)?;
+  write_atomic(&dir.join(&file), contents.as_bytes())?;
+  Ok(file)
+}
+
+fn copy_all(from: &Path, to: &Path) -> Result<(), String> {
+  fs::create_dir_all(to).map_err(es)?;
+  for entry in fs::read_dir(from).map_err(es)? {
+    let entry = entry.map_err(es)?;
+    let (src, dst) = (entry.path(), to.join(entry.file_name()));
+    if entry.file_type().map_err(es)?.is_dir() {
+      copy_all(&src, &dst)?;
+    } else if !entry.file_name().to_string_lossy().ends_with(".aether-tmp") {
+      fs::copy(&src, &dst).map_err(es)?;
+    }
+  }
+  Ok(())
+}
+
+/// Moving the data folder: every vault folder (with everything in it) and the backups go along.
+pub(crate) fn copy_vaults(from: &Path, to: &Path) -> Result<(), String> {
+  for vault in list_vaults(from)? {
+    copy_all(&from.join(&vault.dir), &to.join(&vault.dir))?;
+  }
+  if from.join("backups").is_dir() {
+    copy_all(&from.join("backups"), &to.join("backups"))?;
+  }
+  Ok(())
+}
+
+/// Notes of a data folder that keeps them in vault folders.
+pub(crate) fn count_vault_notes(root: &Path) -> usize {
+  let vaults = list_vaults(root).unwrap_or_default();
+  vaults
+    .iter()
+    .map(|v| files(&root.join(&v.dir)).unwrap_or_default().iter().filter(|f| f.to_lowercase().ends_with(".md")).count())
+    .sum()
+}
+
 pub fn write_canvas(vault: &Path, file: &str, canvas: &str, extra: &str) -> Result<(), String> {
   let board = &with_ext(file, ".canvas")?[..file.len() - ".canvas".len()];
   // the extra file first: if the second write fails, the old board is still whole
@@ -335,6 +397,16 @@ pub fn vault_read(state: State<'_, DataDir>, vault: String) -> Result<VaultSnaps
 #[tauri::command]
 pub fn vault_meta_write(state: State<'_, DataDir>, vault: Option<String>, name: String, meta: String) -> Result<String, String> {
   write_meta(&current(&state)?, vault.as_deref(), &name, &meta)
+}
+
+#[tauri::command]
+pub fn vault_delete(state: State<'_, DataDir>, vault: String) -> Result<(), String> {
+  trash_vault(&current(&state)?, &vault)
+}
+
+#[tauri::command]
+pub fn data_backup(state: State<'_, DataDir>, name: String, contents: String) -> Result<String, String> {
+  write_backup(&current(&state)?, &name, &contents)
 }
 
 /// The file name a note with this title would get (`current` = its file now).
@@ -513,6 +585,40 @@ mod tests {
     assert!(vault_dir(&t.0, "Немає").unwrap_err().starts_with("missing-dir:"));
     assert!(write_meta(&t.0, Some("Немає"), "x", "{}").is_err());
     assert!(!t.0.join("Немає").exists());
+  }
+
+  #[test]
+  fn moving_the_data_folder_takes_vaults_and_backups_along() {
+    let from = Temp::new("move-from");
+    let to = Temp::new("move-to");
+    let dir = write_meta(&from.0, None, "Дошка", "{}").unwrap();
+    write_note(&from.0.join(&dir), "N.md", "текст", true).unwrap();
+    write_atomic(&from.0.join(&dir).join("attachments").join("a.png"), &[1]).unwrap();
+    write_backup(&from.0, "b.aether", "{}").unwrap();
+    fs::create_dir_all(from.0.join("чужа папка")).unwrap();
+
+    copy_vaults(&from.0, &to.0).unwrap();
+    assert_eq!(fs::read_to_string(to.0.join(&dir).join("N.md")).unwrap(), "текст");
+    assert!(to.0.join(&dir).join("attachments").join("a.png").is_file());
+    assert!(to.0.join(&dir).join(".aether").join("vault.json").is_file());
+    assert!(to.0.join("backups").join("b.aether").is_file());
+    assert!(!to.0.join("чужа папка").exists());
+    assert_eq!(count_vault_notes(&to.0), 1);
+  }
+
+  #[test]
+  fn deleted_vaults_and_backups_are_never_overwritten() {
+    let t = Temp::new("vault-trash");
+    for _ in 0..2 {
+      let dir = write_meta(&t.0, None, "V", "{}").unwrap();
+      trash_vault(&t.0, &dir).unwrap();
+    }
+    assert!(t.0.join(".trash").join("V").is_dir() && t.0.join(".trash").join("V 2").is_dir());
+    fs::create_dir_all(t.0.join("data")).unwrap();
+    assert!(trash_vault(&t.0, "data").unwrap_err().starts_with("not-a-vault:"));
+    assert_eq!(write_backup(&t.0, "b.aether", "1").unwrap(), "b.aether");
+    assert_eq!(write_backup(&t.0, "b.aether", "2").unwrap(), "b 2.aether");
+    assert!(write_backup(&t.0, "../x", "3").is_err());
   }
 
   #[test]

@@ -260,6 +260,10 @@ fn resolve_target(p: &Path) -> PathBuf {
 }
 
 fn count_notes(dir: &Path) -> usize {
+  // once moved to vault folders, the old keys are only a stale copy
+  if dir.join("data").join(key_to_file("storage-format")).is_file() {
+    return crate::vault_fs::count_vault_notes(dir);
+  }
   let mut n = 0;
   if let Ok(rd) = fs::read_dir(dir.join("data")) {
     for e in rd.flatten() {
@@ -347,6 +351,7 @@ pub fn data_set_dir(app: AppHandle, state: State<'_, DataDir>, path: String, ado
       if let Some(from) = &from {
         copy_tree(&from.join("data"), &target.join("data"))?;
         copy_tree(&from.join("images"), &target.join("images"))?;
+        crate::vault_fs::copy_vaults(from, &target)?;
       }
     }
     fs::create_dir_all(target.join("data")).map_err(es)?;

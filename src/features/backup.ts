@@ -11,10 +11,11 @@
  */
 import pkg from '../../package.json'
 import { suspendPersistence } from '../hooks/usePersistentState'
-import { DEFAULT_VAULT_ID, deleteVaultData, vaultKey } from '../hooks/vaultKeys'
+import { DEFAULT_VAULT_ID, deleteVaultData } from '../hooks/vaultKeys'
 import type { AppSettings } from '../settings/settings'
 import type { Vault } from '../types/note'
 import { allIds, getImage, putImage } from './images'
+import { getVaultBackend, type VaultData } from './vaultRepo'
 import { flush, getItem, removeItem, setItem } from './store'
 
 const P = 'aethel-vault:'
@@ -83,10 +84,8 @@ export async function createBackup(sections: BackupSection[], onlyVault?: string
     const out: BackupVault[] = []
     for (const v of vaults) {
       const data: Record<string, unknown> = {}
-      for (const k of VAULT_DATA) {
-        const val = read(vaultKey(v.id, k))
-        if (val !== undefined) data[k] = val
-      }
+      const stored = getVaultBackend().load(v.id)
+      for (const k of VAULT_DATA) if (stored[k] !== undefined) data[k] = stored[k]
       out.push({ id: v.id, name: v.name, createdAt: v.createdAt, ...(v.seed ? { seed: v.seed } : {}), data })
       // photos used by the notes
       for (const m of JSON.stringify(data.notes ?? []).matchAll(/"id":"(img-[a-z0-9-]+)"/g)) images[m[1]] = ''
@@ -181,7 +180,8 @@ export async function applyBackup(b: Backup, sections: BackupSection[], opts: { 
     }
     for (const bv of b.notes.vaults) {
       deleteVaultData(bv.id)
-      for (const k of VAULT_DATA) if (bv.data[k] !== undefined) write(vaultKey(bv.id, k), bv.data[k])
+      for (const k of VAULT_DATA)
+        if (bv.data[k] !== undefined) getVaultBackend().save(bv.id, k, bv.data[k] as never, bv.data as Partial<VaultData>)
       const meta: Vault = { id: bv.id, name: bv.name, createdAt: bv.createdAt, ...(bv.seed ? { seed: bv.seed } : {}) }
       const at = vaults.findIndex((v) => v.id === bv.id)
       if (at >= 0) vaults[at] = { ...meta, theme: vaults[at].theme, canvasBg: vaults[at].canvasBg }
