@@ -758,11 +758,10 @@ mod tests {
     assert!(EarlyReads::default().take(&v).is_none());
   }
 
-    #[test]
+  #[test]
   fn header_values_are_decoded() {
     assert_eq!(percent_decode("%D0%94%D0%BE%D1%88%D0%BA%D0%B0%201").unwrap(), "Дошка 1");
     assert!(percent_decode("%G1").is_none());
     assert!(percent_decode("%2").is_none());
   }
 }
-
