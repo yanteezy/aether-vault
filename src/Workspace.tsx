@@ -12,7 +12,8 @@ import { OPPOSITE, type Point } from './components/geometry'
 import { IS_MAC, THEMES, isRadialKey, keyGlyph, type AppSettings, type ThemeId } from './settings/settings'
 import { useCanvasTransform } from './hooks/useCanvasTransform'
 import { usePersistentState } from './hooks/usePersistentState'
-import { DEFAULT_VAULT_ID, vaultKey } from './hooks/vaultKeys'
+import { useVaultData } from './hooks/useVaultData'
+import { DEFAULT_VAULT_ID } from './hooks/vaultKeys'
 import { GUIDE_BOUNDS, guideContent, translateGuide } from './data/guide'
 import type { ChipColor, Connection, Frame, InkColor, InkStroke, InkTool, NoteCardData, Side, TagChip, Vault } from './types/note'
 import { INK_RECENT_DEFAULT, pushRecentInk } from './types/note'
@@ -136,12 +137,13 @@ export function Workspace({
   const [guide] = useState(() =>
     isFirst || vault.seed === 'guide' ? guideContent(getLang(), settings.radialKey || 'Alt') : null,
   )
-  const [notes, setNotes] = usePersistentState<NoteCardData[]>(vaultKey(vault.id, 'notes'), guide?.notes ?? [])
-  const [connections, setConnections] = usePersistentState<Connection[]>(
-    vaultKey(vault.id, 'connections'),
+  const [notes, setNotes] = useVaultData(vault.id, 'notes', guide?.notes ?? [])
+  const [connections, setConnections] = useVaultData(
+    vault.id,
+    'connections',
     guide?.connections ?? [],
   )
-  const [chips, setChips] = usePersistentState<TagChip[]>(vaultKey(vault.id, 'chips'), guide?.chips ?? [])
+  const [chips, setChips] = useVaultData(vault.id, 'chips', guide?.chips ?? [])
   const [selectedChipId, setSelectedChipId] = useState<string | null>(null)
   const [selectedId, setPrimaryId] = useState<string | null>(null)
   /** Multi-selection (Ctrl/⌘+click, Ctrl+drag box). Empty = only `selectedId`; otherwise it contains it. */
@@ -213,8 +215,8 @@ export function Workspace({
   const [activeTagFilters, setActiveTagFilters] = usePersistentState<string[]>('active-tag-filters', [])
 
   // ---------- freehand ink & smart frames (per vault) ----------
-  const [strokes, setStrokes] = usePersistentState<InkStroke[]>(vaultKey(vault.id, 'ink'), guide?.strokes ?? [])
-  const [frames, setFrames] = usePersistentState<Frame[]>(vaultKey(vault.id, 'frames'), guide?.frames ?? [])
+  const [strokes, setStrokes] = useVaultData(vault.id, 'ink', guide?.strokes ?? [])
+  const [frames, setFrames] = useVaultData(vault.id, 'frames', guide?.frames ?? [])
   const [inkPrefs, setInkPrefs] = usePersistentState<{ tool: InkTool; color: InkColor; recent?: InkColor[] }>('ink-tool', {
     tool: 'pen',
     color: 'chalk',
@@ -251,7 +253,7 @@ export function Workspace({
   const mouse = useRef<Point>({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
 
   const { transform, startPan, panTo, endPan, zoomAt, panBy, setScale, fitRect } = useCanvasTransform(
-    vaultKey(vault.id, 'canvas-transform'),
+    vault.id,
     guide ? fitTransform(GUIDE_BOUNDS) : undefined,
   )
 

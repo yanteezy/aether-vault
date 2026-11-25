@@ -8,6 +8,8 @@ let suspended = false
 export function suspendPersistence() {
   suspended = true
 }
+/** Also checked by the vault repositories (features/vaultRepo.ts). */
+export const isPersistenceSuspended = () => suspended
 
 /**
  * Generic persisted-state hook. Any future tab, panel or setting should

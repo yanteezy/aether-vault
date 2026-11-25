@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react'
-import { usePersistentState } from './usePersistentState'
+import { useVaultData } from './useVaultData'
 
 export interface CanvasTransform {
   x: number
@@ -12,8 +12,11 @@ const MAX_SCALE = 2
 
 const clampScale = (s: number) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, s))
 
-export function useCanvasTransform(storageKey = 'canvas-transform', initial: CanvasTransform = { x: 0, y: 0, scale: 1 }) {
-  const [transform, setTransform] = usePersistentState<CanvasTransform>(storageKey, initial)
+const DEFAULT_TRANSFORM: CanvasTransform = { x: 0, y: 0, scale: 1 }
+
+/** The canvas view of a vault (pan / zoom), kept in the vault's repository. */
+export function useCanvasTransform(vaultId: string, initial: CanvasTransform = DEFAULT_TRANSFORM) {
+  const [transform, setTransform] = useVaultData(vaultId, 'canvas-transform', initial)
 
   const isPanning = useRef(false)
   const last = useRef({ x: 0, y: 0 })

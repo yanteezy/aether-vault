@@ -27,6 +27,8 @@
 | `src/types/note.ts` | Типи: `NoteCardData`, `Connection`, `Frame`, `TagChip`, `InkStroke`, `Vault` |
 | `src/features/store.ts` | Сховище даних: синхронне API (`getItem/setItem/removeItem/keys`) над пам'яттю + запис на диск через Tauri; статус збереження; `flush()` |
 | `src/hooks/usePersistentState.ts` | Хук стану з автозбереженням (debounce 200 мс, слухає `aether:flush`) |
+| `src/features/vaultRepo.ts` | `VaultRepository` — власник даних одного сховища (нотатки, зв'язки, рамки, кнопки-теги, малювання, вид полотна); реєстр `getVaultRepo(id)`; бекенд `VaultBackend` (зараз `KeyValueBackend` над `store.ts`) |
+| `src/hooks/useVaultData.ts` | Хук `useVaultData(vaultId, kind, initial)` → `[value, setValue]` поверх репозиторію сховища |
 | `src/hooks/vaultKeys.ts` | Ключі даних сховища: `vaultKey(id, k)`; сховище `default` має «старі» ключі без префікса |
 | `src/features/images.ts` | Фото: у папці даних (десктоп) або IndexedDB (браузер) |
 | `src/features/backup.ts` | Експорт/імпорт `.aether`, знімок «до імпорту» і `revertImport()` |
@@ -37,6 +39,15 @@
 | `src/styles/redesign.css` | Останній шар стилів + блок доступності (WCAG 2.2 AA) |
 
 Ключі даних (префікс `aethel-vault:`): `notes`, `connections`, `frames`, `chips`, `ink`, `canvas-transform`, `vaults`, `active-vault`, `settings`, …; для інших сховищ — `vault:<id>:<key>`.
+
+## Дані сховища
+
+- Нотатки, зв'язки, рамки, кнопки-теги, малювання й вид полотна (`notes`, `connections`, `frames`, `chips`, `ink`, `canvas-transform`) мають одного власника — `VaultRepository` (`src/features/vaultRepo.ts`), один екземпляр на сховище (`getVaultRepo(id)`), спільний для всіх видів, що показують це сховище.
+- **Усі види (полотно, документ, таблиця, канбан…) читають і пишуть ці дані тільки через репозиторій**: у React — `useVaultData(vault.id, kind, initial)`, поза React — `getVaultRepo(id).get/set/getNote/listNotes/updateNote/subscribe`. Не читай і не пиши ключі `vaultKey(id, …)` напряму, поки сховище відкрите (виняток — новий порожній `id`, якого ще ніхто не показує, як у `openSharedBoard`).
+- Збереження як у `usePersistentState`: запис через 200 мс після останньої зміни, одразу на `aether:flush` / `beforeunload`, нічого після `suspendPersistence()`. Код, що читає сховище «повз» репозиторій (бекап), спершу робить `flush()` із `store.ts`.
+- Репозиторій звільняється, коли сховище не показує жоден вид (відкладене дописується); `deleteVaultData` спершу скидає репозиторій без запису.
+- Формат зберігання визначає `VaultBackend` (`load` / `save` / `remove`). Зараз — `KeyValueBackend`: ті самі JSON-ключі, що й у 0.2.x. Новий формат = новий бекенд + міграція (правило 1), а не зміни у видах.
+- Стан інтерфейсу (`panel-graph`, `ink-tool`, `active-tag-filters`, …) — не дані сховища, він лишається на `usePersistentState`.
 
 ## Незмінні правила
 
