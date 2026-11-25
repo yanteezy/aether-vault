@@ -121,6 +121,8 @@ describe('VaultFiles', () => {
     disk.boards.set('V.canvas', { canvas: '{oops', extra: '{}' })
     expect(() => open(disk)).toThrow()
     expect(() => VaultFiles.open('V', { ...empty, unreadable: ['V.canvas'] }, disk.io)).toThrow('unreadable')
+    // drawings and tag buttons live in the extra file: opening without it would erase them on the next save
+    expect(() => VaultFiles.open('V', { ...empty, unreadable: ['.aether/canvas-extra/V.json'] }, disk.io)).toThrow('unreadable')
   })
 
   it('stays fast with 10 000 notes', async () => {

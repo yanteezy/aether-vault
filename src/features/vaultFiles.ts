@@ -78,6 +78,9 @@ export class VaultFiles {
     }
 
     const raw = snapshot.canvases.find((c) => c.file === files.canvasFile)?.text
+    // the same for the extra file: without it the next save would erase drawings and tag buttons
+    const extraFile = `.aether/canvas-extra/${dir}.json`
+    if (snapshot.unreadable.includes(extraFile)) throw new Error(`unreadable:${extraFile}`)
     let extra: CanvasExtra | undefined
     // a broken board file stops the whole vault: opening it as empty would overwrite it
     if (raw !== undefined) {

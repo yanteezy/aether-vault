@@ -45,6 +45,9 @@
 .save-banner__btn:hover { background: rgba(255, 255, 255, 0.3); }
 .save-banner__btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 
+/* files of a vault folder that could not be read: a warning, below the save error if both show */
+.save-banner.is-warning { top: auto; bottom: 88px; z-index: 9700; background: #7a4b00; }
+
 .data-missing {
   position: fixed;
   inset: 0;

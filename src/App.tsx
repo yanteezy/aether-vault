@@ -23,6 +23,7 @@ import { showToast } from './features/toast'
 import { coachKey, coachMouse } from './features/coach'
 import { Toast } from './components/Toast'
 import { SaveStatusBanner } from './components/SaveStatusBanner'
+import { UnreadableNotice } from './components/UnreadableNotice'
 import { hasPreImport, IMPORT_DONE, revertImport } from './features/backup'
 import './App.css'
 
@@ -475,6 +476,7 @@ export default function App() {
       {splash && <SplashScreen onDone={hideSplash} />}
       <UpdateNotice currentVersion={pkg.version} />
       <Toast />
+      <UnreadableNotice />
       <SaveStatusBanner
         onOpenSettings={() => {
           setSettingsJump((j) => ({ section: 'general', n: (j?.n ?? 0) + 1 }))
