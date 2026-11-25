@@ -56,9 +56,23 @@
 3. Перевірка перед завершенням (усе має бути зелене):
    - `npx tsc -b` — без помилок
    - `npm run lint`
-   - `npm test` (Vitest) і `npm run test:e2e` (Playwright) — коли вони налаштовані (крок 00)
+   - `npm test` (Vitest) і `npm run test:e2e` (Playwright)
    - `cargo check` у `src-tauri/` — якщо чіпав Rust
 4. У фінальній відповіді: що зроблено, як перевірити руками (2–5 кроків), що свідомо не зроблено, нова версія.
+
+## Тести
+
+| Що | Команда | Де лежить |
+| --- | --- | --- |
+| Юніт-тести (Vitest + jsdom + fake-indexeddb) | `npm test`, у режимі стеження `npm run test:watch` | поруч із кодом: `src/**/<файл>.test.ts`; спільний setup — `src/test/` |
+| Смоки в браузері (Playwright, Chromium) | `npm run test:e2e` (сам запускає `vite` на порту 1420) | `e2e/*.spec.ts`, стартовий стан — `e2e/fixtures.ts` |
+| CI | на кожен push і PR | `.github/workflows/test.yml`: tsc, lint, test, test:e2e, `cargo check` |
+
+- Перший запуск на новому комп'ютері: `npm ci`, потім `npx playwright install chromium`.
+- Тести йдуть у **браузерному режимі** (без Tauri, дані в localStorage / IndexedDB). Код, що кличе Rust, тестуй через `vi.mock('@tauri-apps/api/core')` (приклад — `src/features/store.test.ts`).
+- Файл, якому не потрібен DOM, але потрібні справжні `Blob.stream()` / `CompressionStream`, — з рядком `// @vitest-environment node` (як `share.test.ts`).
+- Типи тестів перевіряє `tsconfig.test.json` (входить у `npx tsc -b`); у збірку застосунку тести не потрапляють.
+- **Правило: нова фіча = новий тест.** Логіка — юніт-тест; новий сценарій користувача — смок в `e2e/`. Виправлений баг — тест, що його ловить.
 
 ## Продуктивність (цілі)
 
