@@ -3,6 +3,7 @@ import { createBackup, BACKUP_SECTIONS } from './backup'
 import { startFileStore, type FileIo, type StartResult } from './fileStore'
 import { getImage, setPhotoUsers } from './images'
 import * as fs from './vaultFs'
+import { createIndexer } from './searchIndex'
 
 /**
  * Release builds move the data to files. A development run uses the same data folder as the installed app, so it
@@ -22,6 +23,13 @@ export async function startFiles(): Promise<StartResult> {
     migrate: MIGRATE,
     backup: async () => fs.writeDataBackup('before-files.aether', JSON.stringify(await createBackup(BACKUP_SECTIONS))),
   })
-  if (result.mode === 'files') setPhotoUsers(() => result.store.usedImages())
+  if (result.mode === 'files') {
+    const { store } = result
+    setPhotoUsers(() => store.usedImages())
+    // the index fills in the background; the window does not wait for it
+    const indexer = createIndexer(() => store.indexed())
+    store.onWritten = indexer.soon
+    indexer.soon()
+  }
   return result
 }

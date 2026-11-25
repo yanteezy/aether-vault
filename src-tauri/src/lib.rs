@@ -1,6 +1,7 @@
 use tauri::Manager;
 
 mod data;
+mod index;
 mod vault_fs;
 
 /// Save a backup (.aether) into the user's Downloads folder (Documents / home as fallbacks)
@@ -60,6 +61,7 @@ pub fn run() {
     .plugin(tauri_plugin_dialog::init())
     // notes, settings and photos as files in the data folder
     .manage(data::DataDir::default())
+    .manage(index::IndexState::default())
     // backups: Settings → General → Export
     .invoke_handler(tauri::generate_handler![
       save_backup,
@@ -88,7 +90,15 @@ pub fn run() {
       vault_fs::attachment_read,
       vault_fs::attachment_delete,
       vault_fs::vault_delete,
-      vault_fs::data_backup
+      vault_fs::data_backup,
+      index::index_plan,
+      index::index_put,
+      index::index_canvas_links,
+      index::index_keep,
+      index::index_search,
+      index::index_backlinks,
+      index::index_tags,
+      index::index_rebuild
     ])
     .setup(|app| {
       // Windows / Linux: make sure aether:// points at this copy of the app (macOS reads it from Info.plist)
