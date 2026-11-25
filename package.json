@@ -1,7 +1,7 @@
 {
   "name": "aethel-vault",
   "private": true,
-  "version": "0.2.26",
+  "version": "0.3.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -22,7 +22,8 @@
     "@tauri-apps/plugin-process": "^2",
     "@tauri-apps/plugin-updater": "^2",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.1",

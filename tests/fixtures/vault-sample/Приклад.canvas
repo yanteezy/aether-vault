@@ -1,0 +1,79 @@
+{
+  "nodes": [
+    {
+      "id": "f1",
+      "type": "group",
+      "x": 0,
+      "y": 0,
+      "width": 780,
+      "height": 340,
+      "label": "Почніть тут",
+      "color": "5"
+    },
+    {
+      "id": "n-welcome",
+      "type": "file",
+      "x": 40,
+      "y": 80,
+      "width": 320,
+      "height": 220,
+      "file": "Ласкаво просимо.md",
+      "color": "6"
+    },
+    {
+      "id": "n-todo",
+      "type": "file",
+      "x": 420,
+      "y": 80,
+      "width": 320,
+      "height": 220,
+      "file": "Список справ.md",
+      "color": "3"
+    },
+    {
+      "id": "n-code",
+      "type": "file",
+      "x": 40,
+      "y": 420,
+      "width": 320,
+      "height": 220,
+      "file": "Код.md"
+    },
+    {
+      "id": "n-photo",
+      "type": "file",
+      "x": 420,
+      "y": 420,
+      "width": 320,
+      "height": 220,
+      "file": "Фото.md"
+    },
+    {
+      "id": "n-link",
+      "type": "file",
+      "x": 800,
+      "y": 80,
+      "width": 320,
+      "height": 140,
+      "file": "Посилання.md"
+    },
+    {
+      "id": "n-title",
+      "type": "file",
+      "x": 800,
+      "y": 420,
+      "width": 320,
+      "height": 220,
+      "file": "Що таке A-B.md"
+    }
+  ],
+  "edges": [
+    {
+      "id": "c1",
+      "fromNode": "n-welcome",
+      "toNode": "n-todo",
+      "fromSide": "right",
+      "toSide": "left"
+    }
+  ]
+}
