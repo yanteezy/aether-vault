@@ -4,8 +4,8 @@
  * Everything is read at launch, so the backend stays synchronous like the key-value one: a change goes into
  * memory at once and to disk through one queue. A failed write is shown by the save banner and retried.
  *
- * Once `storage-format` says "files" the app stays on files. The first move happens only in builds made with
- * `VITE_FILE_VAULTS=1` until it is switched on for everyone.
+ * Once `storage-format` says "files" the app stays on files. Who may make the first move is decided in
+ * `fileStoreBoot.ts`.
  */
 import { getVaultBackend, KeyValueBackend, setVaultBackend, VAULT_KINDS, type VaultBackend, type VaultData } from './vaultRepo'
 import { VaultFiles } from './vaultFiles'

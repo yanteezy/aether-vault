@@ -53,7 +53,7 @@
 - Формат зберігання визначає `VaultBackend` (`load` / `save` / `remove`). Зараз — `KeyValueBackend`: ті самі JSON-ключі, що й у 0.2.x. Новий формат = новий бекенд + міграція (правило 1), а не зміни у видах.
 - Стан інтерфейсу (`panel-graph`, `ink-tool`, `active-tag-filters`, …) — не дані сховища, він лишається на `usePersistentState`.
 
-## Новий формат файлів (з 0.3; міграція поки лише в збірках з `VITE_FILE_VAULTS=1`)
+## Новий формат файлів (з 0.3.3 release-збірки переносять дані на нього; `app:dev` — лише з `VITE_FILE_VAULTS=1`)
 
 Сховище = папка в папці даних: `<нотатка>.md`, `<полотно>.canvas` (JSON Canvas 1.0), `attachments/`, `.aether/vault.json`, `.aether/canvas-extra/<полотно>.json`, `.trash/`.
 

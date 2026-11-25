@@ -4,8 +4,11 @@ import { startFileStore, type FileIo, type StartResult } from './fileStore'
 import { getImage, setPhotoUsers } from './images'
 import * as fs from './vaultFs'
 
-/** Builds made with `VITE_FILE_VAULTS=1` move the data to files; others only keep using files once moved. */
-const MIGRATE = import.meta.env.VITE_FILE_VAULTS === '1'
+/**
+ * Release builds move the data to files. A development run uses the same data folder as the installed app, so it
+ * moves nothing unless asked with `VITE_FILE_VAULTS=1` (it still uses files once they are there).
+ */
+const MIGRATE = import.meta.env.PROD || import.meta.env.VITE_FILE_VAULTS === '1'
 
 const EXT: Record<string, string> = { 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' }
 
