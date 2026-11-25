@@ -25,6 +25,7 @@ tauri = { version = "2.12.7", features = [] }
 tauri-plugin-log = "2"
 # native folder picker for the data folder
 tauri-plugin-dialog = "2"
+rusqlite = { version = "0.43.0", features = ["bundled"] }
 
 # online updates (desktop only)
 [target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]

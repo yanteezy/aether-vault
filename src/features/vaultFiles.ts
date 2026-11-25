@@ -195,6 +195,11 @@ export class VaultFiles {
     this.disk.set(note.id, { file, text, title: note.title, note, content: signature })
   }
 
+  /** file name → the note stored in it, for the files this app has read or written */
+  notesByFile(): Map<string, NoteCardData> {
+    return new Map([...this.disk.values()].flatMap((e) => (e.note ? [[e.file, e.note] as const] : [])))
+  }
+
   hasAttachment(id: string) {
     return this.attachments.has(id)
   }

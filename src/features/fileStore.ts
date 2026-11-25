@@ -56,6 +56,8 @@ export class FileStore implements VaultBackend {
   private retry = 1000
   private running: Promise<boolean> | null = null
   failure: unknown
+  /** Called after changes reached the disk (the search index follows). */
+  onWritten?: () => void
 
   private constructor(io: FileIo, photo: Photo, dirs: Record<string, string>) {
     this.io = io
@@ -109,6 +111,12 @@ export class FileStore implements VaultBackend {
   get problems(): string[] {
     return [...this.vaults.values()].flatMap((e) => e.files?.problems.map((p) => `${e.files!.dir}/${p}`) ?? [])
   }
+  /** What is on disk now, for the search index. */
+  indexed(): { dir: string; notes: ReturnType<VaultFiles['notesByFile']>; connections: VaultData['connections'] }[] {
+    return [...this.vaults.values()].flatMap(({ data, files }) =>
+      files ? [{ dir: files.dir, notes: files.notesByFile(), connections: data.connections ?? [] }] : [],
+    )
+  }
   get pending() {
     return this.dirty.size > 0 || this.trash.size > 0
   }
@@ -147,6 +155,7 @@ export class FileStore implements VaultBackend {
       this.failure = undefined
       this.retry = 1000
       writerSaved(undefined)
+      this.onWritten?.()
       return true
     } catch (e) {
       this.failure = e

@@ -154,6 +154,18 @@ describe('switching to vault folders', () => {
     expect(lib.trashed).toContain('Головне')
   })
 
+  it('gives the search index what is on disk, and tells it after a write', async () => {
+    oldData()
+    const fs = await files()
+    const written = vi.fn()
+    fs.onWritten = written
+    expect([...fs.indexed()[0].notes.keys()]).toEqual(['n1.md'])
+    fs.save('default', 'notes', [note('n1', { title: 'Нова' })])
+    await store.flush()
+    expect([...fs.indexed()[0].notes.keys()]).toEqual(['Нова.md'])
+    expect(written).toHaveBeenCalled()
+  })
+
   it('never tidies away a photo that only the vault folders know about', async () => {
     oldData()
     const fs = await files()
