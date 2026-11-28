@@ -1,0 +1,452 @@
+/* Aether's card menu, font tiles and text-size control (ported from Aether 0.2.24), on Liquid Glass tokens.
+   The menu itself is `.menu` glass (app.css); this file only lays out its controls. */
+
+.menu.note-menu { width: 268px; max-width: none; max-height: calc(100vh - 16px); display: flex; flex-direction: column; overflow: hidden; font-size: 13px; -webkit-user-select: none; user-select: none; }
+/* only the body scrolls (the rim stays on the menu's edge); a slim, quiet scrollbar without arrows */
+.note-menu__scroll {
+  min-height: 0; margin: -6px; padding: 6px; overflow-y: auto; overscroll-behavior: contain;
+  scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+}
+.note-menu__title { padding: 4px 10px 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.02em; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.note-menu__item { width: 100%; border: 0; background: none; text-align: left; justify-content: space-between; }
+.note-menu__item .menu-item-title { flex: 1; }
+.note-menu__item:disabled { opacity: 0.4; cursor: default; }
+.note-menu__item kbd { border: 0; padding: 0; font-size: 11px; color: var(--text-muted); }
+.note-menu__count { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.note-menu__item.is-danger { color: #ff6961; }
+.note-menu__item.is-danger:hover, .note-menu__item.is-confirm { background: #ff453a; color: #fff; box-shadow: none; }
+
+.note-menu__row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 32px; padding: 2px 10px; }
+.note-menu__block { display: flex; flex-direction: column; gap: 6px; padding: 6px 10px 4px; }
+.note-menu__label { color: var(--text-muted); font-size: 12px; }
+
+/* segmented controls inside glass: a lit track, the chosen option a lit pill (no glass on glass) */
+.note-menu__seg { display: flex; gap: 2px; padding: 2px; border-radius: var(--r-capsule); background: rgba(255, 255, 255, 0.06); }
+.note-menu__seg button {
+  min-width: 30px; height: 24px; padding: 0 8px; border: 0; border-radius: var(--r-capsule); background: none;
+  font-size: 12px; font-weight: 600; color: var(--text-muted);
+  transition: background-color var(--dur-fast) var(--spring-smooth), color var(--dur-fast) var(--spring-smooth), transform var(--dur-snappy) var(--spring-snappy);
+}
+.note-menu__seg button:hover { color: var(--text-normal); }
+.note-menu__seg button.is-active { background: var(--glass-lit-strong); color: var(--text-normal); box-shadow: var(--glass-lit-edge); }
+.note-menu__seg button:active { transform: scale(0.94); }
+.note-menu__seg button svg { display: block; margin: 0 auto; }
+
+/* colour swatches */
+.note-menu__swatches { display: flex; gap: 6px; }
+.note-menu__swatch {
+  width: 18px; height: 18px; padding: 0; border: 0; border-radius: 50%; background: var(--swatch);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+  transition: transform var(--dur-bouncy) var(--spring-bouncy), box-shadow var(--dur-fast) var(--spring-smooth);
+}
+.note-menu__swatch:hover { transform: scale(1.18); }
+.note-menu__swatch.is-active { box-shadow: 0 0 0 2px var(--glass-solid), 0 0 0 3.5px #6cb4ff; }
+
+/* card type picker: 3 × 2 mini previews */
+.note-menu__styles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 2px 6px 6px; }
+.note-menu__style {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 2px 5px;
+  border: 0; border-radius: var(--r-control); background: rgba(255, 255, 255, 0.06); color: var(--text-muted);
+  transition: background-color var(--dur-fast) var(--spring-smooth), color var(--dur-fast) var(--spring-smooth), transform var(--dur-snappy) var(--spring-snappy);
+}
+.note-menu__style:hover { background: var(--glass-lit); color: var(--text-normal); }
+.note-menu__style:active { transform: scale(0.95); }
+.note-menu__style.is-active { background: var(--glass-lit-strong); color: var(--text-normal); box-shadow: var(--glass-lit-edge), inset 0 0 0 1.5px #6cb4ff; }
+.note-menu__style-label { font-size: 10.5px; font-weight: 600; white-space: nowrap; }
+.note-menu__style-glyph { width: 46px; height: 26px; display: flex; flex-direction: column; justify-content: center; gap: 3px; }
+.note-menu__style-glyph i { display: block; height: 3px; border-radius: 2px; background: currentColor; opacity: 0.35; }
+.note-menu__style-glyph i:nth-child(1) { width: 70%; opacity: 0.85; }
+.note-menu__style-glyph i:nth-child(2) { width: 100%; }
+.note-menu__style-glyph i:nth-child(3) { width: 80%; }
+.note-menu__style--headline i:nth-child(1) { height: 7px; width: 85%; }
+.note-menu__style--headline i:nth-child(3) { display: none; }
+.note-menu__style--caps i:nth-child(1) { width: 60%; box-shadow: 0 4px 0 -1px currentColor; margin-bottom: 3px; }
+.note-menu__style--banner i:nth-child(1) { height: 10px; width: 90%; margin: 0 auto; }
+.note-menu__style--banner i:nth-child(2), .note-menu__style--banner i:nth-child(3) { display: none; }
+.note-menu__style--quote .note-menu__style-glyph { border-left: 3px solid #6cb4ff; padding-left: 4px; box-sizing: border-box; }
+.note-menu__style--quote i:nth-child(1) { width: 100%; opacity: 0.35; }
+.note-menu__style--quote i:nth-child(3) { width: 45%; margin-left: auto; opacity: 0.85; }
+.note-menu__style--bullets i { position: relative; margin-left: 7px; width: 80% !important; opacity: 0.35 !important; height: 3px !important; }
+.note-menu__style--bullets i::before { content: ''; position: absolute; left: -7px; top: -0.5px; width: 4px; height: 4px; border-radius: 50%; background: #6cb4ff; }
+
+/* width × height */
+.note-menu__dims { display: flex; align-items: center; gap: 4px; }
+.note-menu__times { color: var(--text-muted); font-size: 11px; }
+.note-menu__num { display: flex; align-items: center; gap: 4px; height: 26px; padding: 0 8px; border-radius: var(--r-capsule); background: rgba(255, 255, 255, 0.06); cursor: text; }
+.note-menu__num span { font-size: 10.5px; font-weight: 600; color: var(--text-muted); }
+.note-menu__num input { width: 36px; padding: 0; border: 0; outline: none; background: none; font: inherit; font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text-normal); text-align: right; }
+.note-menu__num:focus-within { box-shadow: var(--focus-ring); }
+.note-menu__num.is-disabled { opacity: 0.4; }
+.note-menu__range { width: 130px; accent-color: var(--interactive-accent); }
+
+/* ---- font tiles (Settings → Вигляд and the card menu) ---- */
+.font-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; }
+.note-menu .font-tiles { grid-template-columns: repeat(2, 1fr); }
+.font-tile {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-width: 0; min-height: 60px; padding: 9px 6px 8px;
+  border: 0; border-radius: var(--r-control); background: rgba(255, 255, 255, 0.06); color: var(--text-normal); cursor: pointer;
+  transition: background-color var(--dur-fast) var(--spring-smooth), transform var(--dur-snappy) var(--spring-snappy);
+}
+.font-tile:hover { background: var(--glass-lit); }
+.font-tile:active { transform: scale(0.95); }
+.font-tile.is-active { background: var(--glass-lit-strong); box-shadow: var(--glass-lit-edge), inset 0 0 0 1.5px #6cb4ff; }
+.font-tile__aa { font-size: 19px; line-height: 1.1; }
+.note-menu .font-tile__aa { font-size: 16px; }
+.font-tile.is-default .font-tile__aa { color: var(--text-muted); }
+.font-tile__label { max-width: 100%; text-align: center; overflow-wrap: break-word; font: 500 10.5px/1.25 var(--font-interface); color: var(--text-muted); } /* names wrap, never truncate */
+
+/* ---- text size: [Авто] [−] 15 px [+] and a slider ---- */
+.fs-control { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.fs-control__row { display: flex; align-items: center; gap: 6px; }
+.fs-control__auto {
+  height: 24px; padding: 0 10px; border: 0; border-radius: var(--r-capsule); background: rgba(255, 255, 255, 0.06);
+  font-size: 11.5px; font-weight: 600; color: var(--text-muted);
+  transition: background-color var(--dur-fast) var(--spring-smooth), transform var(--dur-snappy) var(--spring-snappy);
+}
+.fs-control__auto:hover { color: var(--text-normal); background: var(--glass-lit); }
+.fs-control__auto:active { transform: scale(0.95); }
+.fs-control__auto.is-active { background: var(--interactive-accent); color: #fff; }
+.fs-control__stepper { flex: 1; min-width: 0; display: flex; align-items: center; gap: 2px; padding: 2px; border-radius: var(--r-capsule); background: rgba(255, 255, 255, 0.06); }
+.fs-control__stepper > button {
+  display: grid; place-items: center; flex: none; width: 28px; height: 28px; padding: 0; border: 0; border-radius: var(--r-capsule); background: none;
+  color: var(--text-muted); font-size: 14px; font-weight: 600; line-height: 1;
+  transition: background-color var(--dur-fast) var(--spring-smooth), transform var(--dur-snappy) var(--spring-snappy);
+}
+.fs-control__stepper > button:hover:not(:disabled) { color: var(--text-normal); background: var(--glass-lit); }
+.fs-control__stepper > button:active:not(:disabled) { transform: scale(0.88); }
+.fs-control__stepper > button:disabled { opacity: 0.3; cursor: default; }
+.fs-control__value { flex: 1; display: flex; align-items: center; justify-content: center; gap: 3px; height: 28px; padding: 0 4px; cursor: text; }
+.fs-control__value input { width: 2ch; padding: 0; border: 0; outline: none; background: none; text-align: right; font: inherit; line-height: 1; font-size: 13px; font-weight: 650; font-variant-numeric: tabular-nums; color: var(--text-normal); }
+.fs-control__value span { font-size: 11px; line-height: 1; color: var(--text-muted); }
+.fs-control__value:focus-within { box-shadow: var(--focus-ring); border-radius: 6px; }
+.fs-control.is-auto .fs-control__value input { color: var(--text-muted); }
+.fs-control__slider {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 4px; margin: 6px 0; border-radius: 999px; outline: none; cursor: pointer;
+  background: linear-gradient(to right, var(--interactive-accent) var(--fill), rgba(255, 255, 255, 0.14) var(--fill));
+}
+.fs-control.is-auto .fs-control__slider { background: linear-gradient(to right, rgba(10, 100, 214, 0.45) var(--fill), rgba(255, 255, 255, 0.14) var(--fill)); }
+.fs-control__slider::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 0 0 0.5px rgba(0, 0, 0, 0.15);
+  transition: transform var(--dur-bouncy) var(--spring-bouncy);
+}
+.fs-control__slider:active::-webkit-slider-thumb { transform: scale(1.2); }
+.fs-control__slider:focus-visible { box-shadow: var(--focus-ring); }
+
+/* ---- the card itself: font, size, type, title alignment, photo, pinned ---- */
+.canvas-node-content, .canvas-node-editor { font-family: var(--nf, var(--note-font-global, var(--font-text))); font-size: var(--card-px, var(--card-font-size, 15px)); }
+.canvas-node-content > div:first-child { transition: font-size var(--dur-smooth) var(--spring-smooth); }
+.title-align-center .canvas-node-content > div:first-child { text-align: center; }
+.title-align-right .canvas-node-content > div:first-child { text-align: right; }
+/* where the text sits in the card; «safe» keeps long text scrollable from its top */
+.v-align-middle .canvas-node-content, .v-align-bottom .canvas-node-content { display: flex; flex-direction: column; }
+.v-align-middle .canvas-node-content { justify-content: safe center; padding-top: 12px; }
+.v-align-bottom .canvas-node-content { justify-content: safe flex-end; }
+.note-style-headline .canvas-node-content > div:first-child { font-size: 1.55em; font-weight: 700; line-height: 1.2; }
+.note-style-caps .canvas-node-content > div:first-child { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.82em; font-weight: 700; padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.18); }
+.note-style-banner .canvas-node-content > div:first-child { font-size: 2.1em; font-weight: 800; line-height: 1.1; }
+.note-style-banner .canvas-node-content > div:not(:first-child) { display: none; }
+.note-style-quote .canvas-node-content { display: flex; flex-direction: column; }
+.note-style-quote .canvas-node-content > div:first-child { order: 2; font-size: 0.85em; color: var(--text-muted); }
+.note-style-quote .canvas-node-content > div:first-child::before { content: '— '; }
+.note-style-quote .canvas-node-content > div:not(:first-child) { font-style: italic; }
+.note-style-headline .canvas-node-content > div:first-child h1, .note-style-banner .canvas-node-content > div:first-child h1,
+.note-style-caps .canvas-node-content > div:first-child h1, .note-style-quote .canvas-node-content > div:first-child h1 { font-size: 1em; margin: 0; }
+.canvas-node.has-image { overflow: hidden; }
+.canvas-node-image { position: absolute; inset: 0; border-radius: inherit; background-position: center; background-repeat: no-repeat; pointer-events: none; }
+.canvas-node-image::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: rgba(0, 0, 0, var(--dim, 0)); }
+.canvas-node.has-image .canvas-node-container { position: relative; }
+.canvas-node.has-image .canvas-node-content { text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
+.canvas-node.is-locked { cursor: default; }
+.canvas-node.is-locked > .canvas-node-resizer { display: none; }
+.canvas-node.is-locked::before {
+  /* a small pin glyph bottom-right, like Aether's lock */
+  content: ''; position: absolute; right: 9px; bottom: 8px; width: 11px; height: 11px; opacity: 0.55; pointer-events: none;
+  background: currentColor; color: var(--text-muted);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='11' width='16' height='10' rx='2'/%3E%3Cpath d='M8 11V7a4 4 0 0 1 8 0v4'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='11' width='16' height='10' rx='2'/%3E%3Cpath d='M8 11V7a4 4 0 0 1 8 0v4'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+/* the note editor and reading view follow the chosen note font, as in Aether */
+.markdown-source-view .cm-editor, .markdown-preview-view { font-family: var(--note-font-global, var(--font-text)); }
+
+/* Settings → Вигляд: the font tiles take the full row under their label */
+.setting-item--stack { flex-direction: column; align-items: stretch; }
+.setting-item--stack .setting-item-control { display: block; }
+.setting-item .fs-control { width: 240px; }
+
+/* Ctrl / ⌘ + drag on the empty canvas: the selection box */
+.canvas-marquee { position: absolute; z-index: 5; pointer-events: none; border-radius: var(--r-inner); border: 1px solid rgba(108, 180, 255, 0.9); background: rgba(10, 132, 255, 0.14); }
+
+/* ---- tag pills in the sidebar: a bubble × grows out of the pill's right edge on hover, shrinks back when the cursor leaves ---- */
+.tag-pane-item { position: relative; display: inline-flex; align-items: center; }
+.tag-pane-remove {
+  position: absolute; left: calc(100% - 6px); top: 50%; z-index: 1;
+  display: grid; place-items: center; width: 20px; height: 20px; margin-top: -10px; padding: 0;
+  border: 0; border-radius: 50%; color: var(--text-normal);
+  background-color: var(--glass-fill-menu); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge), inset 0 0 0 1px rgba(255, 255, 255, 0.18), var(--glass-shadow-s);
+  /* hidden inside the pill: tiny, at its edge, transparent; leaving uses the quicker snappy spring (exits are faster) */
+  transform-origin: left center; transform: translateX(-10px) scale(0.2); opacity: 0; pointer-events: none;
+  transition: transform var(--dur-snappy) var(--spring-snappy), opacity 140ms ease-out, background-color var(--dur-fast) var(--spring-smooth);
+}
+.tag-pane-remove .svg-icon { width: 11px; height: 11px; stroke-width: 2.6; }
+.tag-pane-item:hover .tag-pane-remove, .tag-pane-item:focus-within .tag-pane-remove {
+  transform: translateX(0) scale(1); opacity: 1; pointer-events: auto;
+  transition: transform var(--dur-bouncy) var(--spring-bouncy), opacity 120ms ease-out, background-color var(--dur-fast) var(--spring-smooth);
+}
+.tag-pane-remove:hover { background-color: #ff453a; color: #fff; }
+.tag-pane-remove:active { transform: scale(0.88); }
+.tag-pane-remove:focus-visible { box-shadow: var(--focus-ring); }
+/* room for the bubble so it never covers the next pill */
+.tag-container { column-gap: 14px; }
+@media (prefers-reduced-motion: reduce) {
+  .tag-pane-remove, .tag-pane-item:hover .tag-pane-remove, .tag-pane-item:focus-within .tag-pane-remove { transform: none; }
+}
+
+/* the right panel starts below the window's own buttons, which sit over the top 56px (titleBarOverlay) */
+.mod-right-split { padding-top: calc(env(titlebar-area-height, 0px) + 14px); }
+
+/* a tag kept in every vault: small globe before its name */
+.tag-pane-tag-global { display: inline-flex; margin-right: 4px; opacity: .75; }
+.tag-pane-tag-global .svg-icon { width: 11px; height: 11px; }
+
+/* tags dropped on a card: faint, bottom-right, behind nothing the user clicks */
+.canvas-node-tags {
+  position: absolute; right: 10px; bottom: 6px; max-width: calc(100% - 20px);
+  font-size: 11px; font-weight: 600; letter-spacing: .02em; color: var(--text-muted);
+  pointer-events: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 1;
+}
+.canvas-node.is-tag-target { outline: 2px dashed var(--interactive-accent); outline-offset: 3px; }
+.tag-pane-tag[draggable="true"] { cursor: grab; }
+
+/* ---- undo toast: "done — undo?" for actions Ctrl+Z cannot take back ---- */
+.undo-toast-host {
+  position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 70;
+  display: flex; flex-direction: column-reverse; align-items: center; gap: 8px; pointer-events: none;
+}
+.undo-toast {
+  position: relative; pointer-events: auto;
+  display: flex; align-items: center; gap: 12px;
+  min-height: 48px; max-width: min(520px, calc(100vw - 32px)); padding: 6px 6px 6px 10px;
+  border-radius: var(--r-capsule, 24px);
+  background-color: var(--glass-fill-menu); background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), var(--glass-shadow-l);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  color: var(--text-normal);
+  animation: undo-toast-in var(--dur-bouncy) var(--spring-bouncy) both;
+}
+.undo-toast::after {
+  content: ''; position: absolute; inset: 0; padding: 1px; border-radius: inherit; pointer-events: none;
+  background: var(--glass-rim);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+.undo-toast.is-leaving { animation: undo-toast-out var(--dur-fast) var(--spring-snappy) both; }
+@keyframes undo-toast-in { from { opacity: 0; transform: translateY(14px) scale(0.94); } to { opacity: 1; transform: none; } }
+@keyframes undo-toast-out { to { opacity: 0; transform: translateY(8px) scale(0.97); } }
+
+/* the ring empties from its end; the number in the middle is the seconds left */
+.undo-toast-ring { position: relative; flex: none; width: 32px; height: 32px; display: grid; place-items: center; }
+.undo-toast-ring svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.undo-toast-ring circle { fill: none; stroke-width: 2.5; }
+.undo-toast-track { stroke: rgba(255, 255, 255, 0.14); }
+.undo-toast-arc {
+  stroke: var(--text-accent); stroke-linecap: round; stroke-dashoffset: 0;
+  animation: undo-toast-ring var(--undo-ms, 6s) linear forwards;
+}
+.undo-toast.is-paused .undo-toast-arc { animation-play-state: paused; }
+@keyframes undo-toast-ring { to { stroke-dashoffset: 69.12; } } /* 2π·11: the whole circle */
+.undo-toast-count { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+
+.undo-toast-text { font-size: 13.5px; line-height: 1.35; min-width: 0; overflow-wrap: anywhere; }
+.undo-toast-undo {
+  flex: none; min-height: 36px; padding: 0 16px; border: 0; border-radius: 18px; cursor: pointer;
+  background: rgba(255, 255, 255, 0.08); color: var(--text-accent); font-weight: 700; font-size: 13.5px;
+  transition: background-color var(--dur-fast) var(--spring-snappy), transform var(--dur-fast) var(--spring-snappy);
+}
+.undo-toast-undo:hover { background: rgba(255, 255, 255, 0.14); }
+.undo-toast-undo:active { transform: scale(0.95); }
+.undo-toast-undo:focus-visible { outline: 2px solid var(--text-accent); outline-offset: 2px; }
+.undo-toast-undo:disabled { opacity: .6; cursor: default; }
+body.theme-light .undo-toast-track { stroke: rgba(0, 0, 0, 0.12); }
+body.theme-light .undo-toast-undo { background: rgba(0, 0, 0, 0.06); }
+
+@media (prefers-reduced-motion: reduce) {
+  .undo-toast, .undo-toast.is-leaving { animation: none; }
+  .undo-toast-arc { animation-timing-function: steps(10, end); } /* ticks once a second instead of sliding */
+}
+
+/* a narrow middle (small window, backlinks open): the dock keeps only its icons, so it never covers the sidebar */
+.workspace-split.mod-root { container-type: inline-size; }
+@container (max-width: 640px) {
+  .aether-dock-label { display: none; }
+}
+
+/* a tag pill in keyboard focus gets the same ring as the rest */
+.tag-pane-tag:focus-visible { outline: 2px solid var(--text-accent); outline-offset: 2px; }
+
+/* live preview: bullet dots and task checkboxes in place of `-` and `- [ ]` */
+.cm-editor .list-bullet { display: inline-block; width: 1ch; color: var(--text-muted); font-weight: 700; }
+.cm-editor .task-list-item-checkbox {
+  width: 15px; height: 15px; margin: 0 4px 0 0; vertical-align: -2px; cursor: pointer;
+  accent-color: var(--interactive-accent);
+}
+
+/* card menu: «Вигляд картки» folds the looks away; the chevron turns when it opens */
+.note-menu__fold { justify-content: space-between; }
+.note-menu__chevron {
+  width: 7px; height: 7px; margin-right: 4px; flex: none;
+  border-right: 1.6px solid currentColor; border-bottom: 1.6px solid currentColor;
+  transform: rotate(-45deg); opacity: .7;
+  transition: transform var(--dur-fast) var(--spring-snappy);
+}
+.note-menu__fold[aria-expanded="true"] .note-menu__chevron { transform: rotate(45deg); }
+.note-menu__look { padding-top: 4px; }
+.note-menu__look[hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) { .note-menu__chevron { transition: none; } }
+.undo-toast-undo kbd {
+  margin-left: 8px; padding: 1px 5px; border-radius: 5px; font: 600 11px/1.4 var(--font-interface);
+  background: rgba(255, 255, 255, 0.08); color: var(--text-normal); box-shadow: none;
+}
+
+/* WCAG 1.4.3: small muted text that fell under 4.5:1 on its lighter glass background */
+.tag-pane-tag-count, .nav-file-tag { color: var(--text-muted); }
+.font-tile.is-active .font-tile__label, .font-tile.is-active .font-tile__aa { color: var(--text-normal); }
+.markdown-rendered a.is-unresolved { opacity: 1; text-decoration-style: dotted; } /* told apart by the dotted line, not by fading */
+
+/* WCAG 1.4.10 reflow: at 400 % zoom (≈320 px wide) settings stack — sections become a row on top,
+   each control wraps under its name, and nothing needs sideways scrolling */
+@media (max-width: 640px) {
+  .modal, .modal.mod-settings, .modal.prompt, .modal.mod-catalog { width: calc(100vw - 24px); max-height: calc(100vh - 24px); }
+  .modal.mod-settings { height: calc(100vh - 24px); }
+  .vertical-tabs-container { flex-direction: column; gap: 8px; }
+  .vertical-tab-header { width: auto; flex-direction: row; overflow-x: auto; overflow-y: hidden; padding-bottom: 4px; }
+  .vertical-tab-header-group-title { display: none; }
+  .vertical-tab-nav-item { white-space: nowrap; flex: none; }
+  .setting-item { flex-wrap: wrap; }
+  .setting-item-control { max-width: 100%; }
+}
+
+/* an image file on the canvas (pasted with Ctrl+V): the picture fills the card, no text padding */
+.canvas-node.is-image-file .canvas-node-container { padding: 0; overflow: hidden; }
+.canvas-node.is-image-file .canvas-node-content { height: 100%; padding: 0; overflow: hidden; }
+.canvas-node-img { display: block; width: 100%; height: 100%; object-fit: contain; border-radius: inherit; pointer-events: none; }
+
+/* drawing an edge: where it will attach */
+.canvas-node.is-connect-target { outline: 2px solid #6cb4ff; outline-offset: 4px; }
+.canvas-node.is-connect-dup { outline: 2px dashed rgba(235, 235, 245, 0.45); outline-offset: 4px; }
+.canvas-node-connection-point.is-snap::after { opacity: 1; transform: scale(1.25); }
+.canvas-edge-path.is-drafting.is-duplicate { color: rgba(235, 235, 245, 0.45); stroke-dasharray: 2 5; }
+@media (prefers-reduced-motion: no-preference) {
+  .canvas-node-connection-point::after { transition: opacity 0.12s, transform var(--dur-fast) var(--spring-snappy); }
+}
+
+/* ── Settings → «Claude»: connect the read-only server to Claude Desktop / Claude Code ── */
+.claude-intro, .claude-hint, .claude-path { color: var(--text-muted); font-size: var(--font-ui-small); line-height: 1.5; margin: 0 0 10px; }
+.claude-promise {
+  list-style: none; margin: 0 0 14px; padding: 12px 14px; display: grid; gap: 6px;
+  border-radius: var(--r-md, 14px); background-color: var(--glass-fill); background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge); color: var(--text-normal); font-size: var(--font-ui-small); line-height: 1.45;
+}
+.claude-promise li { padding-left: 18px; position: relative; }
+.claude-promise li::before { content: ''; position: absolute; left: 2px; top: 0.55em; width: 7px; height: 7px; border-radius: 50%; background: var(--interactive-accent); }
+.vertical-tab-content h3 { margin: 18px 0 8px; font-size: var(--font-ui-medium); font-weight: 600; color: var(--text-normal); }
+.claude-status { min-height: 22px; margin: 6px 0 0; font-size: var(--font-ui-small); color: var(--text-muted); }
+.claude-status.is-ok { color: var(--text-normal); }
+.claude-status.is-ok::before { content: '✓ '; color: var(--interactive-accent); font-weight: 700; }
+.claude-status.is-error { color: var(--text-error); }
+.claude-status.is-error::before { content: '! '; font-weight: 700; }
+.claude-cmd { display: flex; gap: 8px; align-items: stretch; }
+.claude-cmd__field {
+  flex: 1; min-width: 0; min-height: 32px; padding: 0 12px; border: 0; border-radius: var(--r-capsule);
+  background-color: var(--glass-fill); box-shadow: var(--glass-edge); color: var(--text-normal);
+  font: 12px/1 var(--font-monospace, ui-monospace, Consolas, monospace); text-overflow: ellipsis;
+}
+.claude-cmd__copy {
+  min-height: 32px; min-width: 24px; padding: 0 16px; border: 0; border-radius: var(--r-capsule); cursor: pointer;
+  background-color: var(--glass-fill); background-image: var(--glass-sheen); color: var(--text-normal);
+  box-shadow: var(--glass-edge), var(--glass-shadow-s); font-size: var(--font-ui-small); font-weight: 500;
+}
+.claude-cmd__copy:hover { background-color: color-mix(in srgb, var(--glass-fill), white 14%); }
+.claude-cmd__copy:active { transform: scale(0.96); }
+.claude-cmd__copy:focus-visible, .claude-cmd__field:focus-visible { outline: none; box-shadow: var(--glass-edge), var(--focus-ring); }
+.claude-path code { word-break: break-all; color: var(--text-normal); }
+@media (prefers-reduced-motion: no-preference) { .claude-cmd__copy { transition: transform var(--dur-fast) var(--spring-snappy), background-color 0.12s; } }
+
+/* ---- canvas cards: quiet scrollbar, fading edge, one text scale, visible colour ---- */
+.canvas-node-content { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.22) transparent; }
+.canvas-node-content.is-clipped {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+}
+.canvas-node-label.is-redundant { display: none; }
+/* corner tags stay clear of the scrollbar */
+.canvas-node-tags { right: 20px; max-width: calc(100% - 40px); }
+/* body text is --card-px on every card type; headings are one clear step above it */
+.canvas-node-content, .canvas-node-content .markdown-preview-view, .canvas-node-content p, .canvas-node-content li { font-size: var(--card-px, var(--card-font-size, 15px)); }
+.canvas-node-content h1 { font-size: 1.35em; } .canvas-node-content h2 { font-size: 1.2em; } .canvas-node-content h3 { font-size: 1.1em; }
+/* the title line takes its type's size (banner, headline, caps, quote): the rule above must not shrink its paragraph back */
+.canvas-node-content > div:first-child p { font-size: inherit; }
+/* coloured card: light tint + a firmer border (text stays > 4.5:1) */
+.canvas-node:not(.canvas-node-group)[style*="--canvas-color"] {
+  background: color-mix(in srgb, var(--canvas-color) 14%, var(--canvas-card-background));
+  border-color: color-mix(in srgb, var(--canvas-color) 85%, transparent);
+}
+
+/* Settings → «Резервні копії»: two choices as cards, then the button and its result */
+.backup-modes { display: grid; gap: 8px; margin: 4px 0 8px; }
+.backup-mode { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: var(--r-control, 12px); border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(255, 255, 255, 0.04); cursor: pointer; }
+.backup-mode:hover { background: rgba(255, 255, 255, 0.07); }
+.backup-mode:has(input:checked) { border-color: var(--interactive-accent); background: rgba(10, 132, 255, 0.12); }
+.backup-mode:has(input:focus-visible) { box-shadow: var(--focus-ring); }
+.backup-mode input { margin: 3px 0 0; width: 16px; height: 16px; accent-color: var(--interactive-accent); flex: none; }
+.backup-mode__title { font-weight: 600; color: var(--text-normal); }
+.backup-mode__desc { margin-top: 2px; font-size: var(--font-ui-small); color: var(--text-muted); line-height: 1.45; }
+.backup-show { margin-top: 6px; min-height: 28px; }
+
+/* ---- updates: the corner notice (glass card, springs up from below), Settings → «Загальне» ---- */
+.update-notice {
+  position: fixed; right: 20px; bottom: 20px; z-index: 65;
+  display: grid; grid-template-columns: auto 1fr; gap: 10px 12px; align-items: start;
+  width: min(340px, calc(100vw - 40px)); padding: 14px 14px 12px;
+  border-radius: var(--r-panel, 20px);
+  background-color: var(--glass-fill-menu); background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), var(--glass-shadow-l);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  color: var(--text-normal);
+  animation: undo-toast-in var(--dur-bouncy) var(--spring-bouncy) both;
+}
+.update-notice[hidden] { display: none; }
+.update-notice::after {
+  content: ''; position: absolute; inset: 0; padding: 1px; border-radius: inherit; pointer-events: none;
+  background: var(--glass-rim);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+/* the accent disc with the icon: the one thing that says «this is about the app itself» */
+.update-notice__icon { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--interactive-accent); color: #fff; box-shadow: 0 4px 14px rgba(10, 132, 255, 0.35); }
+.update-notice__title { font-weight: 600; line-height: 1.3; }
+.update-notice__desc { margin-top: 2px; font-size: var(--font-ui-small); color: var(--text-muted); line-height: 1.4; }
+.update-notice__bar { margin-top: 8px; height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
+.update-notice__bar > div { height: 100%; border-radius: inherit; background: var(--interactive-accent); transition: width var(--dur-smooth) var(--spring-smooth); }
+.update-notice__actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; }
+.update-notice__actions button { min-height: 32px; padding: 0 14px; border: 0; border-radius: var(--r-capsule, 999px); font: inherit; font-size: var(--font-ui-small); font-weight: 600; cursor: pointer; }
+.update-notice__later { background: rgba(255, 255, 255, 0.08); color: var(--text-normal); }
+.update-notice__later:hover { background: rgba(255, 255, 255, 0.14); }
+.update-notice__go { background: var(--interactive-accent); color: #fff; }
+.update-notice__go:hover { filter: brightness(1.1); }
+.update-notice__actions button:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.about-app { display: flex; align-items: center; gap: 14px; margin: 0 0 18px; }
+.about-app__logo { width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; color: #fff;
+  background: radial-gradient(circle at 30% 25%, #7fc1ff, #0a64d6 60%, #3b2d7a); box-shadow: 0 8px 24px rgba(10, 100, 214, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35); }
+.about-app__logo svg { width: 28px; height: 28px; }
+.about-app__name { margin: 0; font-size: 22px; }
+.about-app__version { margin-top: 2px; color: var(--text-muted); font-size: var(--font-ui-small); font-variant-numeric: tabular-nums; }
+
+/* first start after the old Aether: its notes are offered before anything else */
+.aether-welcome-legacy { margin: 0 0 16px; padding: 18px; border-radius: var(--r-panel, 20px); text-align: left;
+  background-color: var(--glass-fill-menu); box-shadow: var(--glass-edge), var(--glass-shadow-s); }
+.aether-welcome-legacy h2 { margin: 0 0 6px; font-size: 17px; }
+.aether-welcome .aether-welcome-legacy p { margin: 0 0 14px; }

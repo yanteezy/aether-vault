@@ -1,141 +1,75 @@
-<p align="center">
-  <img src="docs/assets/banner.png" alt="Aether — your thoughts on an infinite canvas" width="100%">
-</p>
+# Aether
 
-<p align="center">
-  <a href="https://github.com/yanteezy/aether-vault/releases/latest"><img src="https://img.shields.io/github/v/release/yanteezy/aether-vault?style=flat-square&color=0a84ff&label=version" alt="Latest version"></a>
-  <a href="https://github.com/yanteezy/aether-vault/releases"><img src="https://img.shields.io/github/downloads/yanteezy/aether-vault/total?style=flat-square&color=32d74b&label=downloads" alt="Downloads"></a>
-  <img src="https://img.shields.io/badge/platforms-macOS%20%7C%20Windows-8e8e93?style=flat-square" alt="macOS | Windows">
-  <img src="https://img.shields.io/badge/built%20with-Tauri%202%20%2B%20React-24c8db?style=flat-square" alt="Built with Tauri 2 and React">
-</p>
+Aether is a note-taking app for Windows and macOS built around a spatial canvas. Notes are plain Markdown files in an ordinary folder, and canvases use the open JSON Canvas format, so the same vault opens in Obsidian and in any text editor. The interface is in Ukrainian.
 
-<p align="center">
-  <a href="https://github.com/yanteezy/aether-vault/releases/latest/download/Aether-macOS.dmg"><img src="docs/assets/download-macos.png" alt="Download for macOS" width="340"></a>
-  &nbsp;
-  <a href="https://github.com/yanteezy/aether-vault/releases/latest/download/Aether-Windows-Setup.exe"><img src="docs/assets/download-windows.png" alt="Download for Windows" width="340"></a>
-</p>
+Aether є нотатником для Windows і macOS, побудованим навколо полотна. Нотатки зберігаються як звичайні файли Markdown у вашій папці, полотна у відкритому форматі JSON Canvas, тож те саме сховище відкривається в Obsidian і в будь-якому текстовому редакторі.
 
-<p align="center">
-  <sub>Free · no account · your notes never leave your computer · <a href="https://github.com/yanteezy/aether-vault/releases">all releases</a></sub>
-</p>
+![Полотно з картками, рамками, стрілками й малюнком](docs/screenshots/canvas.png)
 
----
+[Завантажити останню версію](https://github.com/yanteezy/aether-vault/releases/latest): `Aether-Setup-<версія>.exe` для Windows, `Aether-<версія>-mac.dmg` для macOS.
 
-**Aether** is a spatial notebook. Instead of a list of files you get an endless canvas:
-drop notes anywhere, connect them with lines, group them into frames, sketch on top —
-and flip a switch to make whole groups of notes light up, step back or hide.
+## Сховище
 
-<p align="center">
-  <img src="docs/assets/screenshot.jpg" alt="Aether: a podcast plan on the canvas, with tag buttons wired to notes" width="100%">
-</p>
+Сховище є звичайною папкою на диску. Кожна нотатка є окремим файлом `.md`, кожне полотно є файлом `.canvas`, фото лежать у `attachments/`. Службові дані Aether (відкриті вкладки, малюнки на полотні, налаштування) зберігаються в прихованій папці `.aether` поруч. Окремої бази даних немає: якщо видалити Aether, файли залишаться на місці й читатимуться без нього. Сховищ може бути скільки завгодно, а перемикаються вони кнопкою з назвою сховища внизу ліворуч.
 
-## ✨ Features
+## Полотно
 
-### 🗒️ An infinite canvas for your notes
-- **Notes anywhere.** Double-click the canvas to create one; drag, resize, colour and pin it.
-- **Six note styles** — plain, headline, caps, banner, quote and bullet list — each with its own text size and title alignment.
-- **Links.** Pull a line from the edge of one note to another to show how ideas connect.
-- **Frames.** Wrap notes into a group — move the frame and everything inside comes along. Right-click for colour, size and lock.
-- **Ink.** Draw arrows, circles and highlights with a pen, marker and eraser. Draw on a note and the sketch becomes part of it — it moves, copies and deletes with the note. Free drawings can be clicked, dragged and deleted.
-- **Photos.** Paste, drop or add a picture to any note — fill or fit, move, zoom and darken it under the text. Drop a photo on empty canvas to get a picture note.
-- **Smart links.** Paste a YouTube, GitHub, Figma, Google Docs, Notion, Spotify… link and get a card with the service, a readable title (and a preview for YouTube) that opens in your browser. Links inside notes are clickable.
-- **Tabs.** Keep separate workspaces side by side — work, study, a side project — each with its own theme if you like.
-- **Undo everything.** <kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>Z</kbd> undoes any change on the board, <kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>X</kbd> / <kbd>C</kbd> / <kbd>V</kbd> cut, copy and paste notes, buttons, frames and drawings.
-- **Select anything.** <kbd>Ctrl</kbd> / <kbd>⌘</kbd> + drag or <kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>A</kbd> picks up notes, buttons and frames together — move or delete them as one.
-- **Fonts.** Pick a font for all notes in Settings, or right-click a note to give it its own — system, serif, rounded, monospace, typewriter or handwritten.
+Картку можна створити подвійним кліком, кнопкою «Картка» в доку або перетягнути на полотно наявну нотатку з бічної панелі. У меню картки (права кнопка) є шість типів: звичайна, заголовок, великі літери, банер, цитата та список. Для кожної можна задати колір, шрифт і розмір тексту, вирівнювання та положення назви, фото на тлі, а також закріпити її на місці. Теги з бічної панелі перетягуються прямо на картку.
 
-### 🔌 Tag buttons you can wire up
-Place a button on the canvas, pull a cable from its jack to any note or frame, then flip the switch:
+Картки з'єднуються стрілками від точок на краях, групуються в рамки, змінюють порядок шарів. Режим «Малювати» відкриває в доку смужку кольорів: чотири останні використані й вибір будь-якого іншого. Малюнки поводяться як об'єкти: їх можна виділяти (Ctrl+клік або рамкою з Ctrl), перетягувати, вирізати й вставляти, ставити над карткою чи під неї. Дії, які не скасувати звичайним способом, показують повідомлення з десятисекундним відліком і кнопкою «Скасувати»; на полотні працюють Ctrl+Z і Ctrl+Shift+Z.
 
-<table>
-<tr>
-<td width="58%"><img src="docs/assets/feature-wiring.jpg" alt="Buttons wired to notes with glowing cables"></td>
-<td>
+![Меню картки: типи, вирівнювання, розмір тексту, шрифти](docs/screenshots/card-menu.png)
 
-| Button | What it does |
-|---|---|
-| 🔴 **important** | Pulsing red glow, on top of everything |
-| 💡 **idea** | Warm glow and a light bulb |
-| 🔵 **todo** | Marching dashed outline |
-| 🟣 **question** | Purple outline and a pulsing «?» |
-| ✅ **done** | Steps back under other notes and turns grey |
-| 🔒 **personal** | Content hidden behind a frosted shutter |
+## Нотатки
 
-Make your own buttons and pick any effect — including **highlight** and **dim** — and choose **S / M / L** size.
+Редактор Markdown показує форматування одразу під час набору: заголовки, списки, задачі, цитати, таблиці, код. Посилання `[[Назва нотатки]]` ведуть на інші нотатки, панель зворотних посилань показує, хто посилається на поточну. Є пошук по сховищу (Ctrl+K), теги з лічильниками, щоденні нотатки, шаблони та граф зв'язків.
 
-</td>
-</tr>
-</table>
+![Нотатка в редакторі з посиланнями, задачами й тегами](docs/screenshots/notes.png)
 
-<p align="center">
-  <img src="docs/assets/feature-button-menu.jpg" alt="Button menu: size and effect" width="45%">
-  &nbsp;
-  <img src="docs/assets/feature-radial.jpg" alt="Radial menu" width="45%">
-</p>
+## Галактика
 
-### ⚡ Fast to move around
-- **Radial menu** — hold <kbd>Alt</kbd> / <kbd>⌥</kbd> and flick towards an action.
-- **Quick search** — press <kbd>Space</kbd> and type; a title that doesn't exist yet becomes a new note.
-- **Zoom** with the wheel or a pinch — towards the middle of the board, or under the cursor if you prefer.
+Третій вид поряд із полотном і нотатками показує сховище як 3D-галактику. Кожна нотатка й кожна текстова картка полотна є зіркою, лінії між ними повторюють посилання та стрілки. Зірки можна розкласти спіральним диском, скупченнями за папками або за тегами. Розмір зірки залежить від кількості зв'язків, яскравість від того, як давно нотатку змінювали. Клік показує картку нотатки, Enter відкриває її, F лишає видимими тільки сусідів. Сцену малює WebGL2, граф будується у фоновому потоці з кешем: сховище на 10 000 нотаток відкривається приблизно за півсекунди повторно і за 1,5 с уперше.
 
-### 🎨 Five themes
+![Галактика нотаток, згрупована за тегами](docs/screenshots/galaxy.png)
 
-<p align="center">
-  <img src="docs/assets/themes.jpg" alt="Glass, Light, Detective board, Blueprint and Mono themes" width="100%">
-</p>
+## Резервні копії
 
-Plus accent colour, glass blur, card opacity, corner radius, text size, grid and animation speed — all in **Settings** (<kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>,</kbd>). The interface speaks **English** and **Ukrainian** — you choose on first launch, and the built-in guide follows your choice.
+У налаштуваннях, вкладка «Резервні копії», можна зберегти сховище в один файл `.aetherbackup`: повністю, з фото та вкладеннями, або лише нотатки й полотна. Файл відкриває тільки Aether, і пошкоджену копію він помітить замість того, щоб відновити зіпсовані дані. Імпорт створює з копії нове сховище в окремій папці й нічого наявного не перезаписує.
 
-### 🔄 Updates itself
-<img src="docs/assets/feature-update.jpg" alt="Update card" width="330" align="right">
+![Налаштування резервних копій](docs/screenshots/backups.png)
 
-When a new version is out, Aether shows what's new and installs it in one click — your notes stay exactly where they were.
-Updates are signed, so the app only accepts versions published here.
+## Плагіни та Claude
 
-<br clear="right">
+Aether запускає плагіни спільноти Obsidian, бо повторює їхній API (`obsidian.d.ts`); перевірено на популярних плагінах, але не на всіх. Плагіни мають повний доступ до системи, тому вмикаються лише після того, як ви довірите сховищу.
 
-### 🔐 Private by design
-No account, no cloud, no tracking. Everything you write is stored locally on your computer.
-The only thing Aether ever asks the internet is «is there a newer version?».
+Вкладка «Claude» підключає сховище до Claude Desktop або Claude Code через MCP-сервер, який тільки читає: Claude може шукати по нотатках і полотнах, бачити відкриту нотатку та виділені картки, але нічого не змінює.
 
-## 📦 Install
+## Оновлення
 
-**macOS** (Apple Silicon & Intel, macOS 12+)
-1. Download **[Aether-macOS.dmg](https://github.com/yanteezy/aether-vault/releases/latest/download/Aether-macOS.dmg)**, open it and drag Aether into **Applications**.
-2. The app isn't signed with an Apple developer certificate yet, so the first launch is blocked.
-   Open **System Settings → Privacy & Security**, scroll down and click **Open Anyway**. You only need to do this once.
+Aether перевіряє нові версії на GitHub через кілька секунд після запуску й далі кожні 6 годин. Коли версія з'являється, у кутку вікна виникає повідомлення з кнопками «Оновити» і «Пізніше»; перед перезапуском усі нотатки зберігаються. Перевірити вручну можна в налаштуваннях, вкладка «Загальне». На macOS застосунок не підписаний сертифікатом Apple і не може оновити себе сам, тому кнопка відкриває сторінку релізу.
 
-**Windows** (10 / 11)
-1. Download **[Aether-Windows-Setup.exe](https://github.com/yanteezy/aether-vault/releases/latest/download/Aether-Windows-Setup.exe)** and run it — no admin rights needed.
-2. If Windows shows *«Windows protected your PC»*, click **More info → Run anyway**.
+## Перехід зі старого Aether
 
-## ⌨️ Shortcuts
+Версії до 0.2.24 зберігали нотатки у власному форматі. Після оновлення до 0.3.0 перший екран пропонує перенести їх: кожне старе сховище стає папкою в «Документи\Aether», картки, стрілки, рамки, малюнки й фото переносяться на свої місця. Старі дані тільки читаються і залишаються незмінними, а старий застосунок лишається встановленим, доки ви не видалите його самі. Під час видалення не позначайте пункт про видалення даних застосунку.
 
-| Action | macOS | Windows |
-|---|---|---|
-| Quick search | <kbd>Space</kbd> | <kbd>Space</kbd> |
-| Search / new note field | <kbd>⌘</kbd> <kbd>K</kbd> | <kbd>Ctrl</kbd> <kbd>K</kbd> |
-| Radial menu | hold <kbd>⌥</kbd> | hold <kbd>Alt</kbd> |
-| Edit selected note | <kbd>Enter</kbd> | <kbd>Enter</kbd> |
-| Duplicate note | <kbd>⌘</kbd> <kbd>D</kbd> | <kbd>Ctrl</kbd> <kbd>D</kbd> |
-| Undo / redo | <kbd>⌘</kbd> <kbd>Z</kbd> / <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>Z</kbd> | <kbd>Ctrl</kbd> <kbd>Z</kbd> / <kbd>Ctrl</kbd> <kbd>Y</kbd> |
-| Cut / copy / paste | <kbd>⌘</kbd> <kbd>X</kbd> <kbd>C</kbd> <kbd>V</kbd> | <kbd>Ctrl</kbd> <kbd>X</kbd> <kbd>C</kbd> <kbd>V</kbd> |
-| Select all | <kbd>⌘</kbd> <kbd>A</kbd> | <kbd>Ctrl</kbd> <kbd>A</kbd> |
-| Delete selection | <kbd>⌫</kbd> | <kbd>Delete</kbd> |
-| Next / previous tab | <kbd>⌘</kbd> <kbd>⌥</kbd> <kbd>→</kbd> / <kbd>←</kbd> | <kbd>Ctrl</kbd> <kbd>Tab</kbd> / <kbd>Ctrl</kbd> <kbd>⇧</kbd> <kbd>Tab</kbd> |
-| Drawing: pen / marker / eraser | <kbd>P</kbd> <kbd>M</kbd> <kbd>E</kbd> | <kbd>P</kbd> <kbd>M</kbd> <kbd>E</kbd> |
-| Settings | <kbd>⌘</kbd> <kbd>,</kbd> | <kbd>Ctrl</kbd> <kbd>,</kbd> |
+## Розробка
 
-New to Aether? **Settings → General → Guide** opens a tab with notes about every feature.
+Electron 45 і TypeScript без UI-бібліотек. Інтерфейс збирається esbuild, головний процес компілюється `tsc`.
 
-## 🛠️ Build from source
-
-Aether is built with [Tauri 2](https://tauri.app), React 19, TypeScript and Vite.
-
-```bash
-npm install
-npm run app:dev   # desktop window with hot reload
-npm run dev       # or just the web UI at http://localhost:1420
+```
+npm ci
+npm start          # зібрати й запустити
+npm test           # юніт-тести (Vitest)
+npm run smoke      # перевірка в справжньому вікні (Playwright + Electron)
+npm run dist       # інсталятор Windows у release/
 ```
 
-Releases are built and signed by GitHub Actions — see [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) (in Ukrainian) for the full guide.
+Як влаштований застосунок і чому зроблено саме так, описано в [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Знімки для цього файлу оновлює `node scripts/screenshots.mjs` після `npm run build`.
+
+## Випуск версії
+
+1. Підніміть `version` у `package.json` і допишіть зверху рядок у `RELEASE_NOTES.md`.
+2. Створіть і надішліть тег: `git tag v<версія>` і `git push origin v<версія>`. Workflow `.github/workflows/release.yml` збере Windows і macOS та створить чернетку релізу.
+3. Перевірте чернетку й опублікуйте її. Встановлені застосунки бачать лише опубліковані релізи.
+
+Для старого Aether 0.2.x реліз містить `latest.json`, підписаний ключем із секретів `TAURI_SIGNING_PRIVATE_KEY` і `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. Новий застосунок оновлюється через `latest.yml` і від цих секретів не залежить.

@@ -1,42 +1,104 @@
 {
-  "name": "aethel-vault",
+  "name": "aether-prototype",
+  "version": "0.3.0",
   "private": true,
-  "version": "0.2.26",
   "type": "module",
+  "main": "dist/main/main.js",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "oxlint",
+    "build": "tsc -p tsconfig.json && node scripts/build.mjs",
+    "start": "npm run build && electron .",
+    "typecheck": "tsc -p tsconfig.test.json",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "test:e2e": "playwright test",
-    "preview": "vite preview",
-    "tauri": "tauri",
-    "app:dev": "tauri dev",
-    "app:build": "tauri build --bundles dmg"
+    "smoke": "npm run build && node scripts/smoke.mjs && node scripts/canvas-smoke.mjs",
+    "build:prod": "tsc -p tsconfig.json && node scripts/build.mjs --prod",
+    "dist": "npm run build:prod && electron-builder --win --publish never"
   },
-  "dependencies": {
-    "@tauri-apps/api": "^2.12.5",
-    "@tauri-apps/plugin-deep-link": "^2",
-    "@tauri-apps/plugin-opener": "^2",
-    "@tauri-apps/plugin-process": "^2",
-    "@tauri-apps/plugin-updater": "^2",
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+  "build": {
+    "appId": "app.aether.prototype",
+    "productName": "Aether",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**",
+      "index.html",
+      "package.json",
+      "!node_modules/**"
+    ],
+    "asarUnpack": [
+      "dist/mcp/**",
+      "dist/claude/**",
+      "dist/main/galaxyWorker.cjs"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "Aether-Setup-${version}.${ext}"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "yanteezy",
+        "repo": "aether-vault"
+      }
+    ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "artifactName": "Aether-${version}-mac.${ext}",
+      "category": "public.app-category.productivity",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false
+    }
   },
   "devDependencies": {
-    "@playwright/test": "^1.65.1",
-    "@tauri-apps/cli": "^2.12.6",
-    "@types/node": "^24.19.2",
-    "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^6.1.2",
+    "@types/jsdom": "^30.0.0",
+    "@types/node": "^26.6.10",
+    "electron": "^45.5.0",
+    "electron-builder": "^26.18.0",
     "esbuild": "^0.28.2",
-    "fake-indexeddb": "^6.2.8",
     "jsdom": "^31.0.1",
-    "oxlint": "^1.90.0",
-    "typescript": "~7.0.2",
-    "vite": "^8.3.6",
-    "vitest": "^5.1.1"
+    "playwright": "^1.65.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.2"
+  },
+  "dependencies": {
+    "@codemirror/commands": "^6.11.2",
+    "@codemirror/lang-markdown": "^6.5.2",
+    "@codemirror/language": "^6.13.1",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.44.0",
+    "@fontsource/inter": "^5.3.0",
+    "@lezer/common": "^1.5.7",
+    "@lezer/highlight": "^1.2.5",
+    "dompurify": "^3.5.0",
+    "electron-updater": "^6.8.11",
+    "lucide": "^1.80.0",
+    "marked": "^18.3.0",
+    "moment": "^2.31.0",
+    "yaml": "^2.9.1"
   }
 }

@@ -1,13 +1,15 @@
 <!doctype html>
-<html lang="en">
+<html lang="uk">
   <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' app: file: data: blob:; img-src * file: data: blob:" />
     <title>Aether</title>
+    <link rel="stylesheet" href="dist/app/app.css" />
+    <link rel="stylesheet" href="dist/app/note-menu.css" />
+    <link rel="stylesheet" href="dist/app/shell.css" />
+    <link rel="stylesheet" href="dist/app/galaxy.css" />
   </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+  <body class="theme-dark">
+    <script src="dist/app/index.js"></script>
   </body>
 </html>

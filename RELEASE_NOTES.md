@@ -1,41 +1,11 @@
-What's new · Що нового
-• Under the hood: each workspace's notes now have a single owner in the app, ready for new views (document, table, board); nothing changes in how notes are stored · Під капотом: нотатки кожного сховища тепер мають одного «власника» в застосунку — підготовка до нових видів (документ, таблиця, канбан); формат зберігання не змінився
-• Under the hood: automatic tests now check every change before a release, so updates are less likely to break anything · Під капотом: автоматичні тести тепер перевіряють кожну зміну перед релізом — оновлення рідше щось ламають
-• Your notes now live in a folder on disk — no more browser storage limit. Settings → General → Data folder: pick your own (e.g. Dropbox, OneDrive or iCloud) to have the same notes on every computer. Existing notes and photos move over automatically · Нотатки тепер лежать у папці на диску — без обмеження браузерного сховища. Налаштування → Загальні → Папка даних: можна вибрати свою (наприклад, у Dropbox, OneDrive чи iCloud), щоб нотатки були на всіх компʼютерах. Наявні нотатки й фото переносяться самі
-• If saving ever fails (disk full, folder unavailable), a red bar says so and Aether keeps retrying — nothing is lost silently · Якщо збереження не вдається (диск заповнений, папка недоступна), це видно на червоній панелі, а Aether пробує знову — нічого не губиться непомітно
-• Deleted a workspace by mistake? “Undo” in the message at the bottom brings it back · Випадково видалили сховище? «Повернути» в повідомленні внизу поверне його
-• Import keeps a way back: “Restore as before” right after it, and in Settings → General · Імпорт залишає шлях назад: «Повернути як було» одразу після нього і в Налаштуваннях → Загальні
-• P starts drawing; hold P to draw only while it is held. The board is framed in the brush colour while drawing · P вмикає малювання; затисніть P — малювання лише поки тримаєте. Під час малювання полотно обведене кольором пензля
-• Share shows how long the link will be before copying, and suggests the .aether file when it is too long · «Поширити» показує довжину посилання ще до копіювання й пропонує файл .aether, коли воно задовге
-• Short tips: after doing something with the mouse a few times, Aether shows its shortcut once · Короткі поради: коли кілька разів робите щось мишею, Aether один раз покаже гарячу клавішу
-• Full keyboard control: Tab reaches notes and buttons, arrows move them (Shift — by grid), Shift+F10 opens the menu, “Connect to…” and “Wire to…” replace dragging · Повне керування клавіатурою: Tab доходить до нотаток і кнопок, стрілки рухають їх (Shift — по сітці), Shift+F10 відкриває меню, «Зʼєднати з…» і «Підʼєднати до…» замість перетягування
-• Easier to read: stronger contrast for secondary text, tags and accent buttons in every theme and accent colour · Легше читати: сильніший контраст другорядного тексту, тегів і акцентних кнопок у всіх темах і кольорах
-• Screen readers: every control is named, actions like delete and undo are announced, “Skip to notes” link · Екранні читачі: усі елементи підписані, видалення й скасування озвучуються, посилання «Перейти до нотаток»
-• Settings and Share keep keyboard focus inside and return it on close; bigger click targets for small swatches and dots · Налаштування й «Поширити» тримають фокус клавіатури всередині й повертають його після закриття; більші зони натискання для кружечків
-• “Reduce motion” in your system now calms all animations · Системне «Зменшити рух» тепер вимикає зайві анімації
-• Redesign: a calmer top bar with one main action; links, cables and drawings step back until you need them · Переробка: спокійніша верхня панель з однією головною дією; звʼязки, кабелі й малюнки відходять на другий план, доки не знадобляться
-• Command palette (Ctrl+K): every action with its shortcut, note search and new notes in one place · Палітра команд (Ctrl+K): усі дії з клавішами, пошук нотаток і нові нотатки в одному місці
-• First-time tips, and the full launch animation only once a day · Підказки для новачків, а повна заставка — лише раз на день
-• All menus share one look; English “Cancel” buttons no longer say “Undo” · Усі меню в одному стилі; англійські кнопки «Cancel» більше не підписані «Undo»
-• Share a board with a link (the Share button, top right): the whole board travels inside the link — no server, no account. Optional password: the board is then encrypted (AES-256) and won't open without it. Private notes can be left out · Поширення дошки посиланням (кнопка «Поширити» справа зверху): уся дошка всередині посилання — без сервера й акаунтів. За бажанням пароль: тоді дошка шифрується (AES-256) і без нього не відкривається. Особисті нотатки можна не включати
-• Opening a link: click it, or paste it into Aether (Ctrl+V) — the board opens as a new workspace · Відкриття посилання: клікніть або вставте його в Aether (Ctrl+V) — дошка відкриється як нове сховище
-• Export and import your data (Settings → General): pick notes, themes and settings, get one .aether file, open it in Aether on another computer · Експорт та імпорт даних (Налаштування → Загальні): оберіть нотатки, теми й налаштування — один файл .aether, який відкривається в Aether на іншому компʼютері
-• Hold the middle mouse button anywhere to move the canvas — over notes, frames and buttons too · Затисніть середню кнопку миші будь-де, щоб рухати полотно, навіть над нотатками, рамками й кнопками
-• Drawing palette: any colour, and the four swatches remember your last-used colours · Палітра в малюванні: будь-який колір, а чотири кружечки показують останні використані
-• A workspace with its own theme now keeps its own canvas background too · Сховище з власною темою тепер має й власний фон полотна
-• Canvas backgrounds for the Glass and Light themes: calm tones and quiet patterns (Settings → Design) · Фони полотна для тем «Скло» і «Світла»: спокійні тони й тихі патерни (Налаштування → Дизайн)
-• First launch: the logo traces ∞ while Aether loads, then rises to greet you with the language choice · Перший запуск: лого обводить ∞ під час завантаження й піднімається до вибору мови
-• New launch animation: a light traces ∞ around the logo while Aether loads, then becomes the dock · Нова заставка: світло обводить ∞ навколо лого під час завантаження й стає доком
-• Sharp text and borders at any zoom level — no more blur when zooming out · Чіткий текст і рамки на будь-якому масштабі — більше ніякого мила при віддаленні
-• New notes start without a placeholder title · Нові нотатки без автоматичного напису «Нова нотатка»
-• Ctrl+D duplicates everything selected — notes, buttons, frames, drawings · Ctrl+D дублює все виділене: нотатки, кнопки, рамки, малюнки
-• Smoother drawing: hand tremor is ironed out · Плавніше малювання: тремтіння руки згладжується
-• Buttons resize freely: drag the corner grip or use the slider in the menu · Кнопки змінюють розмір вільно: ручка в кутку або повзунок у меню
-• Right-click menus always fit the window and scroll · Меню правої кнопки завжди вміщуються у вікно й прокручуються
-• Draw on a note — the drawing sticks to it; free drawings can be selected and moved · Малюнок на нотатці прив'язується до неї; вільні малюнки можна виділяти й переміщати
-• Photos: paste, drop or add to a note; move, zoom, darken · Фото: вставка, перетягування, кнопка в меню; посунути, масштаб, затемнення
-• Smart link cards for YouTube, GitHub, Figma, Google Docs… · Картки посилань YouTube, GitHub, Figma, Google Docs…
-• Ctrl+Z / Ctrl+Shift+Z undo & redo everything; Ctrl+X / C / V · Скасування й повтор будь-якої дії; вирізати, копіювати, вставити
-• Each workspace can have its own theme · Своя тема для кожного сховища
-• Scissors on links to unlink notes · Ножиці на лінії, щоб від'єднати нотатки
-• Shortcuts work on any keyboard layout and no longer get stuck after search · Гарячі клавіші працюють на будь-якій розкладці й не «зависають» після пошуку
+• The new Aether: notes are plain Markdown files in a folder, canvases are JSON Canvas (opens in Obsidian too); 3D Galaxy, backups, community plugins. Your notes from the old Aether move over in one click and the old data stays untouched · Новий Aether: нотатки — звичайні файли Markdown у папці, полотна — JSON Canvas (відкриваються і в Obsidian); 3D-галактика, резервні копії, плагіни спільноти. Нотатки зі старого Aether переносяться одним кліком, старі дані не змінюються
+
+## Що нового у 0.3.0
+
+- **Перехід на новий Aether.** Після оновлення на першому екрані буде «Ваші нотатки зі старого Aether» → «Перенести нотатки». Кожне сховище стане окремою папкою в «Документи\Aether»: картки, стрілки, рамки, малюнки й фото — на своїх місцях. Старі дані лише читаються і лишаються як були. Пізніше це можна зробити в Налаштуваннях → «Загальне».
+- **Полотно:** картки з типами (банер, заголовок, цитата…), положення тексту, кольори малювання, шари (картка над малюнком і навпаки), виділення й перетягування малюнків, Ctrl+X / C / V.
+- **Галактика:** нотатки й картки полотен як зірки в 3D, зв'язки як на полотні.
+- **Резервні копії** у файл `.aetherbackup` та імпорт сховища з нього.
+- **Оновлення:** Aether сам перевіряє нові версії на GitHub; Налаштування → «Загальне» → «Перевірити оновлення».
+
+Старий застосунок після оновлення лишається встановленим поруч (у «Програмах» — Aether 0.2.x). Його можна видалити, коли переконаєтеся, що все перенеслося. Під час видалення **не** ставте позначку видалення даних застосунку.

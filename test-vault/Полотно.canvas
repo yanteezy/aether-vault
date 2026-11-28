@@ -1,0 +1,67 @@
+{
+	"nodes": [
+		{
+			"id": "dfdb4bc86385b0bd",
+			"type": "text",
+			"text": "ффівфівфів",
+			"x": -923,
+			"y": -789,
+			"width": 260,
+			"height": 140
+		},
+		{
+			"id": "45af1fedcad990ea",
+			"type": "text",
+			"text": "",
+			"x": -566,
+			"y": -390,
+			"width": 260,
+			"height": 140
+		},
+		{
+			"id": "4edcdd49e1017b8a",
+			"type": "group",
+			"label": "Рамка",
+			"x": -952,
+			"y": -864,
+			"width": 889,
+			"height": 269
+		},
+		{
+			"id": "6f85a8156dff13a9",
+			"type": "file",
+			"file": "Список.md",
+			"x": -415,
+			"y": -463,
+			"width": 400,
+			"height": 300
+		},
+		{
+			"id": "1c7233ce7f9895c9",
+			"type": "text",
+			"text": "",
+			"x": 21,
+			"y": -495,
+			"width": 260,
+			"height": 140
+		},
+		{
+			"id": "e93aafe2f747a299",
+			"type": "text",
+			"text": "фывфывфыв\n\n\nфывфыв\n",
+			"x": 331,
+			"y": -473,
+			"width": 260,
+			"height": 140
+		}
+	],
+	"edges": [
+		{
+			"id": "7195d21c9422f599",
+			"fromNode": "dfdb4bc86385b0bd",
+			"fromSide": "right",
+			"toNode": "45af1fedcad990ea",
+			"toSide": "left"
+		}
+	]
+}

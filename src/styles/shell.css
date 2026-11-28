@@ -1,0 +1,65 @@
+/* Window shell: dock, start screen, file tags. Loads after note-menu.css. */
+
+/* `hidden` must win over the dock buttons' own display rules */
+.aether-dock [hidden] { display: none !important; }
+
+/* a lone empty tab is the start screen, not a tab */
+.workspace-tab-header.is-empty-tab:only-child { display: none; }
+
+.nav-file-tag { text-transform: none; }
+
+.empty-state { gap: 10px; }
+.empty-state-subtitle { margin-top: 14px; font-size: var(--font-ui-smaller); color: var(--text-muted); }
+.empty-state-action { justify-self: center; display: inline-flex; align-items: center; gap: 10px; min-height: 32px; padding: 0 16px; cursor: pointer; }
+.empty-state-action kbd { font: inherit; font-size: var(--font-ui-smaller); opacity: 0.8; }
+.empty-state-recent { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.empty-state-recent-item {
+  min-height: 28px; max-width: 320px; padding: 0 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background: transparent; border: 0; border-radius: var(--r-capsule); color: var(--text-muted); font: inherit; cursor: pointer;
+}
+.empty-state-recent-item:hover { background: var(--glass-lit); color: var(--text-normal); }
+.empty-state-recent-item:focus-visible { box-shadow: var(--focus-ring); outline: none; }
+
+/* ---- the vault name at the bottom of the sidebar: a button that asks to switch the folder ---- */
+.status-bar-item.mod-path {
+  display: block; max-width: 100%; padding: 2px 6px; margin: 0 -6px; min-height: 24px;
+  border: 0; border-radius: 8px; background: none; cursor: pointer; text-align: left;
+  font: inherit; color: var(--text-muted);
+  transition: background-color var(--dur-fast) var(--spring-snappy), color var(--dur-fast) var(--spring-snappy);
+}
+.status-bar-item.mod-path:hover, .status-bar-item.mod-path[aria-expanded='true'] { background: var(--glass-lit, rgba(255, 255, 255, 0.08)); color: var(--text-normal); }
+.status-bar-item.mod-path:focus-visible { outline: 2px solid var(--text-accent); outline-offset: 1px; }
+
+.vault-switch {
+  position: fixed; z-index: 80; width: 300px; padding: 14px 14px 12px;
+  border-radius: var(--r-panel, 18px);
+  background-color: var(--glass-fill-menu); background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), var(--glass-shadow-l);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  color: var(--text-normal);
+  transform-origin: 12% 100%;
+  animation: vault-switch-in var(--dur-bouncy, 500ms) var(--spring-bouncy) both;
+}
+.vault-switch::after {
+  content: ''; position: absolute; inset: 0; padding: 1px; border-radius: inherit; pointer-events: none;
+  background: var(--glass-rim);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+.vault-switch.is-leaving { animation: vault-switch-out var(--dur-fast, 300ms) var(--spring-snappy) both; }
+@keyframes vault-switch-in { from { opacity: 0; transform: translateY(10px) scale(0.86); } to { opacity: 1; transform: none; } }
+@keyframes vault-switch-out { to { opacity: 0; transform: translateY(6px) scale(0.94); } }
+.vault-switch-title { font-weight: 700; font-size: 14px; margin-bottom: 8px; }
+.vault-switch-text { font-size: 12.5px; color: var(--text-muted); line-height: 1.4; }
+.vault-switch-path {
+  margin: 4px 0 8px; padding: 6px 8px; border-radius: 8px; background: rgba(255, 255, 255, 0.06);
+  font: 12px/1.35 var(--font-monospace, ui-monospace, monospace); color: var(--text-normal); overflow-wrap: anywhere;
+}
+.vault-switch-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.vault-switch-actions button {
+  min-height: 32px; padding: 0 14px; border: 0; border-radius: 16px; cursor: pointer; font: 600 13px var(--font-interface);
+  background: rgba(255, 255, 255, 0.08); color: var(--text-normal);
+}
+.vault-switch-actions .vault-switch-pick { background: var(--interactive-accent); color: #fff; }
+.vault-switch-actions button:focus-visible { outline: 2px solid var(--text-accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .vault-switch, .vault-switch.is-leaving { animation: none; } }

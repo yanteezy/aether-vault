@@ -1,11 +1,13 @@
-# Builds Aether for macOS (.dmg, Intel + Apple Silicon) and Windows (.exe),
-# signs the update files with your key and creates a GitHub release with latest.json
-# (the file installed apps check for updates).
+# Builds Aether for Windows (.exe) and macOS (.dmg / .zip, Intel + Apple Silicon) and creates a DRAFT
+# GitHub release with everything both updaters need:
+#   - latest.yml / latest-mac.yml  → this app (electron-updater) finds the next versions;
+#   - latest.json + .sig files     → the OLD Aether 0.2.x (Tauri) finds v0.3.0 and installs the new app.
 #
-# Start: push a tag that matches the version in package.json, e.g.
-#   git tag v0.2.13 && git push origin v0.2.13
-# The release is created as a DRAFT: check it on GitHub and press «Publish release» —
-# only then do installed apps see the update.
+# Start: push a tag equal to the version in package.json, e.g.
+#   git tag v0.3.0 && git push origin v0.3.0
+# Check the draft on GitHub and press «Publish release»: only then do installed apps see the update.
+#
+# Secrets (already set for the old app): TAURI_SIGNING_PRIVATE_KEY, TAURI_SIGNING_PRIVATE_KEY_PASSWORD.
 
 name: Release
 
@@ -23,14 +25,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: macos-latest
-            args: --target universal-apple-darwin
-            rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
-          - platform: windows-latest
-            args: --bundles nsis
-            rust_targets: ''
-    runs-on: ${{ matrix.platform }}
-
+          - os: windows-latest
+            target: --win
+          - os: macos-latest
+            target: --mac
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
@@ -40,61 +39,63 @@ jobs:
         run: |
           v="v$(node -p "require('./package.json').version")"
           if [ "$v" != "${GITHUB_REF_NAME}" ]; then
-            echo "::error::Тег ${GITHUB_REF_NAME} не збігається з версією в package.json ($v). Оновіть версію в package.json."
+            echo "::error::Тег ${GITHUB_REF_NAME} не збігається з версією в package.json ($v)."
             exit 1
           fi
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.rust_targets }}
+      - run: npm ci
+      - run: npm test
+      - run: npm run build:prod
 
-      - uses: swatinem/rust-cache@v2
-        with:
-          workspaces: './src-tauri -> target'
+      - name: Installers
+        run: npx electron-builder ${{ matrix.target }} --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
 
-      - name: Point the updater at this repository
+      - name: Sign for the old Aether 0.2.x
         shell: bash
         env:
-          REPO: ${{ github.repository }}
-        run: node -e "const fs=require('fs');const f='src-tauri/tauri.conf.json';fs.writeFileSync(f,fs.readFileSync(f,'utf8').replace('__REPO__',process.env.REPO))"
-
-      - name: Release notes
-        id: notes
-        shell: bash
-        run: |
-          {
-            echo 'body<<NOTES_EOF'
-            if [ -f RELEASE_NOTES.md ]; then cat RELEASE_NOTES.md; else echo 'Нова версія Aether'; fi
-            echo
-            echo 'NOTES_EOF'
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Install dependencies
-        run: npm install
-
-      - uses: tauri-apps/tauri-action@v0
-        id: tauri
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        with:
-          tagName: v__VERSION__
-          releaseName: Aether v__VERSION__
-          releaseBody: ${{ steps.notes.outputs.body }}
-          releaseDraft: true
-          prerelease: false
-          args: ${{ matrix.args }}
+        run: node scripts/legacy-update.mjs
 
-      - name: Fixed-name download link (Aether-Windows-Setup.exe / Aether-macOS.dmg)
-        continue-on-error: true
-        shell: bash
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}
+          if-no-files-found: error
+          path: |
+            release/*.exe
+            release/*.dmg
+            release/*.zip
+            release/*.blockmap
+            release/*.yml
+            release/*.tar.gz
+            release/*.sig
+            release/legacy-*.json
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: latest.json for the old Aether
+        run: node scripts/legacy-latest.mjs artifacts ${{ github.repository }}
+      - name: Draft release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          UPLOAD_URL: ${{ steps.tauri.outputs.releaseUploadUrl }}
-          ARTIFACTS: ${{ steps.tauri.outputs.artifactPaths }}
-        run: node .github/scripts/stable-asset.mjs
+        shell: bash
+        run: |
+          v="v$(node -p "require('./package.json').version")"
+          # fixed-name copies, as in the old releases: links to releases/latest/download/Aether-Windows-Setup.exe keep working
+          exe=$(find artifacts -name 'Aether-Setup-*.exe' | head -1); [ -n "$exe" ] && cp "$exe" artifacts/Aether-Windows-Setup.exe
+          dmg=$(find artifacts -name 'Aether-*-mac.dmg' | head -1); [ -n "$dmg" ] && cp "$dmg" artifacts/Aether-macOS.dmg
+          files=$(find artifacts -type f ! -name 'legacy-*.json' ! -name 'builder-debug.yml')
+          gh release create "$v" --draft --title "Aether $v" --notes-file RELEASE_NOTES.md $files

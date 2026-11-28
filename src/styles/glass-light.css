@@ -1,0 +1,18 @@
+/*
+ * Cursor light for Liquid Glass. src/app/glassLight.ts sets data-glass-lit, --lx/--ly (px, relative to the element)
+ * and --li (0..1) only on glass within ~140px of the pointer. The `body :is(...)[data-glass-lit]` form is more specific
+ * than the component rules in app.css, which are imported after this file.
+ * Only the edges catch the light: the rim gets brighter and slightly thicker toward the pointer; the glass itself
+ * does not glow, so text contrast is never touched.
+ */
+body:not(.reduce-transparency) :is(.aether-dock, .menu, .modal, .notice, .suggestion-container, .aether-segmented, .aether-button, .clickable-icon.aether-header-icon)[data-glass-lit]::after {
+  padding: 2px;
+  background:
+    radial-gradient(circle 120px at var(--lx, -999px) var(--ly, -999px), rgba(255, 255, 255, var(--li, 0)) 0%, rgba(255, 255, 255, calc(var(--li, 0) * 0.6)) 40%, rgba(255, 255, 255, 0) 100%),
+    var(--glass-rim);
+}
+/* off: Reduce Motion / Reduce Transparency / Increase Contrast (the JS also stops working) */
+@media (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  body [data-glass-lit] { --li: 0 !important; }
+}
+body.reduce-transparency [data-glass-lit] { --li: 0 !important; }
